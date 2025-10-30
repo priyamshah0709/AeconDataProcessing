@@ -13,6 +13,7 @@ from helpers import (
     enrich_row,
     ensure_fieldnames_with_appends,
     compute_output_path,
+    should_skip_row,
 )
 
 
@@ -37,6 +38,8 @@ def enrich_csv(input_csv_path: str, output_csv_path: str) -> None:
             writer = csv.DictWriter(outfile, fieldnames=fieldnames, extrasaction="ignore")
             writer.writeheader()
             for row in reader:
+                if should_skip_row(row, reader.fieldnames):
+                    continue
                 enriched = enrich_row(row)
                 writer.writerow(enriched)
 

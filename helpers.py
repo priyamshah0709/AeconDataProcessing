@@ -5,6 +5,7 @@ This module contains utility functions used for extracting and computing
 values needed to enrich CSV files with MPL, account codes, and UOM data.
 """
 
+import re
 from fractions import Fraction
 from pathlib import Path
 from typing import Dict, List
@@ -14,6 +15,9 @@ from constants import (
     INPUT_AUTOCAD_COG_Z,
     INPUT_AUTOCAD_SIZE,
     INPUT_AUTOCAD_PLANT_MATERIAL,
+    INPUT_ENTITY_HANDLE,
+    INPUT_ITEM_TYPE,
+    INPUT_CIVIL3D_INFO,
     MPL_COLUMN,
     MPL_DESC_COLUMN,
     ACCOUNT_CODE_COLUMN,
@@ -133,20 +137,59 @@ def compute_account_description(row: Dict[str, str]) -> str:
     Returns:
         The computed account code description string
     """
-    z_raw = row.get(INPUT_AUTOCAD_COG_Z)
-    try:
-        z_val = float(z_raw) if z_raw not in (None, "") else 0.0
-    except Exception:
-        z_val = 0.0
-
-    size_val = parse_autocad_size(row.get(INPUT_AUTOCAD_SIZE))
+    # Check if this is a Pressure Pipe - if so, set default values
+    ItemType = row.get(INPUT_ITEM_TYPE)
+    ItemSourceFile = row.get(INPUT_ITEM_SOURCE_FILE)
+    ItemSourceFileCode = compute_mpl(ItemSourceFile)
+    
+    if ItemType == "Pressure Pipe" or ItemSourceFileCode in ["CUW"]:
+        # Set default values for Pressure Pipe
+        row[INPUT_AUTOCAD_COG_Z] = float('-inf')
+        row[INPUT_AUTOCAD_SIZE] = compute_size_from_civil3dInfo(row.get(INPUT_CIVIL3D_INFO))
+        row[INPUT_AUTOCAD_PLANT_MATERIAL] = compute_material_from_civil3dInfo(row.get(INPUT_CIVIL3D_INFO))
+    
+    missing_values = []
+    
+    # Step 1: Check material first
     material_key = row.get(INPUT_AUTOCAD_PLANT_MATERIAL)
-    material_name = material_map.get(material_key)
-    if material_name is not None and str(material_name).strip() == "":
-        material_name = None
-
+    material_name = None
+    if material_key in (None, ""):
+        missing_values.append("Material")
+    else:
+        material_name = material_map.get(material_key)
+        if material_name is not None and str(material_name).strip() == "":
+            material_name = None
+        if material_name is None:
+            missing_values.append("Material")
+    
+    # Step 2: Check size
+    size_raw = row.get(INPUT_AUTOCAD_SIZE)
+    size_val = None
+    if size_raw in (None, ""):
+        missing_values.append("Size")
+    else:
+        size_val = parse_autocad_size(size_raw)
+        if size_val is None:
+            missing_values.append("Size")
+    
+    # Step 3: Check COG_Z
+    z_raw = row.get(INPUT_AUTOCAD_COG_Z)
+    z_val = None
+    if z_raw in (None, ""):
+        missing_values.append("COG_Z")
+    else:
+        try:
+            z_val = float(z_raw)
+        except Exception:
+            missing_values.append("COG_Z")
+    
+    # If COG_Z or Size are missing, report them all
+    if len(missing_values) > 0 and ("COG_Z" in missing_values or "Size" in missing_values):
+        return f"Missing values: {', '.join(missing_values)}"
+    
+    # All values are present, proceed with normal logic
     is_above_ground = z_val > GROUND_LEVEL_THRESHOLD
-    is_small_bore = (size_val is not None) and (size_val <= 2)
+    is_small_bore = size_val <= 2
 
     if is_above_ground:
         if is_small_bore:
@@ -178,6 +221,92 @@ def compute_account_description(row: Dict[str, str]) -> str:
             if material_name is not None
             else "Underground Large Bore Pipe"
         )
+
+def compute_size_from_civil3dInfo(civil3dInfo: str) -> str:
+    """
+    Extract pipe size from Civil3D information and convert to inches.
+
+    Behavior:
+    - Prefer explicit inch values inside parentheses, e.g. "(4\")" -> "4\""
+    - Otherwise, extract the first occurrence of a number followed by "mm"
+      (supports forms like "315mmØ" or "300mm") and convert to inches.
+    - Round to the nearest 0.5 inch and return as a string like "3\"" or "1.5\"".
+    - If nothing can be parsed, default to "2\"".
+    """
+    if not civil3dInfo:
+        return ""
+
+    text = civil3dInfo.strip()
+
+    # 1) Prefer explicit inches in parentheses, e.g. (4")
+    match_in_parentheses = re.search(r"\((\d+(?:\.\d+)?)\s*\"?\)", text)
+    if match_in_parentheses:
+        inches_val = float(match_in_parentheses.group(1))
+        return f"{inches_val:g}\""
+
+    # 2) Normalize common variants like "mmØ" -> "mm"
+    normalized = text.replace("mmØ", "mm").replace("Ø", "")
+
+    # 3) Extract first number followed by mm
+    match_mm = re.search(r"(\d+(?:\.\d+)?)\s*mm", normalized, flags=re.IGNORECASE)
+    if match_mm:
+        mm_val = float(match_mm.group(1))
+        inches = mm_val / 25.4
+        # Round to nearest 0.5 inch
+        rounded = round(inches * 2) / 2.0
+        if abs(rounded - round(rounded)) < 1e-9:
+            return f"{int(round(rounded))}\""
+        return f"{rounded:.1f}\""
+
+    # 4) Fallback: look for a bare inches number with a quote not in parentheses
+    match_inch = re.search(r"(\d+(?:\.\d+)?)\s*\"", text)
+    if match_inch:
+        inches_val = float(match_inch.group(1))
+        return f"{inches_val:g}\""
+
+    # Return null if nothing matched
+    return ""
+
+def compute_material_from_civil3dInfo(civil3dInfo: str) -> str:
+    """
+    Determine material code by scanning the Civil3D information string.
+
+    Returns the first key from material_map whose text appears as a
+    substring (case-insensitive) in the Civil3D information. If no
+    material key is found, returns an empty string.
+    """
+    if not civil3dInfo:
+        return ""
+
+    text_upper = civil3dInfo.upper()
+    for material_key in material_map.keys():
+        key_upper = str(material_key).upper()
+        if key_upper and key_upper in text_upper:
+            return material_key
+
+    return ""
+
+def should_skip_row(row: Dict[str, str], fieldnames: List[str]) -> bool:
+    """
+    Determine if a row should be skipped during processing.
+
+    A row is skipped if the entity_handle column exists in the CSV and is
+    empty or contains only whitespace. If the column doesn't exist, rows
+    are not skipped.
+
+    Args:
+        row: Dictionary containing the CSV row data
+        fieldnames: List of column names in the CSV
+
+    Returns:
+        True if the row should be skipped, False otherwise
+    """
+    # Only check entity_handle if the column exists in the CSV
+    if INPUT_ENTITY_HANDLE not in fieldnames:
+        return False
+    
+    entity_handle = row.get(INPUT_ENTITY_HANDLE, "").strip()
+    return not entity_handle
 
 
 def enrich_row(row: Dict[str, str]) -> Dict[str, str]:

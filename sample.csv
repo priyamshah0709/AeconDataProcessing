@@ -7,6 +7,10 @@ GEH-BWRX-H10-005,8.0,3/4,Alloy,Small bore alloy pipe with fraction size,120
 GEH-BWRX-K30-006,-1.2,24",SS,Underground large bore stainless steel,30
 GEH-BWRX-N21-007,15.3,1 1/2,CS,Small bore mixed number size,200
 GEH-BWRX-U71-008,10.5,48",CS,Large bore carbon steel,10
-GEH-BWRX-Y99-009,-5.0,6",PVC,Underground PVC pipe,45
+GEH-BWRX-Y99-009,-5.0,6",,Underground PVC pipe,45
 GEH-BWRX-R10-010,20.0,96",SS,Very large bore stainless steel,5
+GEH-BWRX-R10-011,,14",CS,Large bore carbon steel pipe,10
+GEH-BWRX-R10-012,10.0,,SS,Very large bore stainless steel,5
+GEH-BWRX-R10-013,,14",,Large bore carbon steel pipe,10
+GEH-BWRX-R10-013,10.0,,,Large bore carbon steel pipe,10
 

@@ -12,6 +12,9 @@ INPUT_ITEM_SOURCE_FILE = "ItemSourceFile"
 INPUT_AUTOCAD_COG_Z = "AutoCADCOG_Z"
 INPUT_AUTOCAD_SIZE = "AutoCADSize"
 INPUT_AUTOCAD_PLANT_MATERIAL = "AutoCADPlantMaterial"
+INPUT_ENTITY_HANDLE = "EntityHandle"
+INPUT_ITEM_TYPE = "ItemType"
+INPUT_CIVIL3D_INFO = "Civil3DInformation:Description"
 
 # Output column names (columns to write to enriched CSV)
 MPL_COLUMN = "MPL"
@@ -24,7 +27,7 @@ UOM_COLUMN = "UOM"
 DEFAULT_UOM = "LM"
 
 # Threshold values
-GROUND_LEVEL_THRESHOLD = 0.0  # Z-coordinate above this value is considered "above ground"
+GROUND_LEVEL_THRESHOLD = 0.00  # Z-coordinate above this value is considered "above ground"
 
 # Data maps
 mpl_map: Dict[str, str] = {
