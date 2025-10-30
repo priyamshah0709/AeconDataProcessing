@@ -16,6 +16,9 @@ from constants import (
     INPUT_AUTOCAD_SIZE,
     INPUT_AUTOCAD_PLANT_MATERIAL,
     INPUT_ENTITY_HANDLE,
+    MATERIAL_CODE_COLUMN,
+    ITEM_MATERIAL_COLUMN,
+    ITEM_TYPE_COLUMN,
     INPUT_ITEM_TYPE,
     INPUT_CIVIL3D_INFO,
     MPL_COLUMN,
@@ -27,6 +30,9 @@ from constants import (
     GROUND_LEVEL_THRESHOLD,
     mpl_map,
     material_map,
+    material_codes_map,
+    ItemMaterial_PlantMaterial_map,
+    material_keys_list,
     piping_map,
 )
 
@@ -154,13 +160,18 @@ def compute_account_description(row: Dict[str, str]) -> str:
     material_key = row.get(INPUT_AUTOCAD_PLANT_MATERIAL)
     material_name = None
     if material_key in (None, ""):
-        missing_values.append("Material")
-    else:
+        # Fallback: try to infer from material code column
+        inferred_key = compute_material_key(row.get(MATERIAL_CODE_COLUMN), row.get(ITEM_MATERIAL_COLUMN), row.get(ITEM_TYPE_COLUMN))
+        if inferred_key:
+            material_key = inferred_key
+    
+    if material_key not in (None, ""):
         material_name = material_map.get(material_key)
         if material_name is not None and str(material_name).strip() == "":
             material_name = None
-        if material_name is None:
-            missing_values.append("Material")
+    
+    if material_name is None:
+        missing_values.append("Material")
     
     # Step 2: Check size
     size_raw = row.get(INPUT_AUTOCAD_SIZE)
@@ -221,6 +232,44 @@ def compute_account_description(row: Dict[str, str]) -> str:
             if material_name is not None
             else "Underground Large Bore Pipe"
         )
+
+def compute_material_key(material_code_value: str, item_material_value: str, item_type_value: str) -> str:
+    """
+    Infer the material key (e.g., "SS", "CS", "PVC", "Alloy") from a
+    material code string by matching exactly against any value contained in
+    material_codes_map. Matching is case-insensitive and trims whitespace.
+
+    Resolution order:
+    1) Match material_code_value against material_codes_map values
+    2) Map item_material_value using ItemMaterial_PlantMaterial_map
+    3) If still unknown, check item_type_value for any substring from
+       material_keys_list (case-insensitive) and return that key.
+
+    Returns the material key if found, otherwise an empty string.
+    """
+    # Try to derive material key from material code
+    if material_code_value:
+        needle = str(material_code_value).strip().upper()
+        for key, code_values in material_codes_map.items():
+            for candidate in code_values:
+                if needle == str(candidate).strip().upper():
+                    return key
+                
+    # Try to derive material key from item material
+    if item_material_value:
+        mapped = ItemMaterial_PlantMaterial_map.get(item_material_value)
+        if mapped:
+            return mapped
+
+    # 3) Inspect item_type_value for any material key substring
+    if item_type_value:
+        up = str(item_type_value).upper()
+        for key in material_keys_list:
+            if str(key).upper() in up:
+                return key
+
+    # No material key found
+    return ""
 
 def compute_size_from_civil3dInfo(civil3dInfo: str) -> str:
     """

@@ -15,6 +15,9 @@ INPUT_AUTOCAD_PLANT_MATERIAL = "AutoCADPlantMaterial"
 INPUT_ENTITY_HANDLE = "EntityHandle"
 INPUT_ITEM_TYPE = "ItemType"
 INPUT_CIVIL3D_INFO = "Civil3DInformation:Description"
+MATERIAL_CODE_COLUMN = "AutoCADMaterialCode"
+ITEM_MATERIAL_COLUMN = "ItemMaterial"
+ITEM_TYPE_COLUMN = "ItemType"
 
 # Output column names (columns to write to enriched CSV)
 MPL_COLUMN = "MPL"
@@ -158,11 +161,63 @@ mpl_map: Dict[str, str] = {
     "Y99": "YARD/BOP",
 }
 
+material_keys_list = ["SS", "CS", "PVC"]
+
 material_map: Dict[str, str] = {
     "SS": "Stainless Steel",
     "CS": "Carbon Steel",
     "PVC": "PVC and CPVC",
+    "Copper": "Copper",
+    "Pex Tubing": "Pex Tubing",
     "Alloy": "Other Alloy and Other Pipe (All-In)",
+}
+
+ItemMaterial_PlantMaterial_map: Dict[str, str] = {
+    "Stainless Steel": "SS",
+    "Steel, Carbon": "CS",
+    "Carbon Steel": "CS",
+    "PVC": "PVC",
+    "Plastic" : "Pex Tubing",
+    "Copper": "Copper",
+}
+
+material_codes_map = {
+    "SS": [
+        "ASME SA213-TP304",
+        "ASME SA312-316L",
+        "ASME SA312-TP304/TP304L",
+        "ASME SA312-TP304/TP304L[DG]",
+        "ASME SA312-TP304H",
+        "ASME SA312-TP304L",
+        "ASME SA312-TP316",
+        "ASME SA312-TP316/TP316L[DG]",
+        "ASME SA312-TP316L",
+        "ASTM A213-TP304",
+        "ASTM A213-TP316",
+        "ASTM A312-TP304/TP304L",
+        "ASTM A312-TP304L[DG]",
+        "ASTM A312-TP304L",
+        "ASTM A312-TP316/TP316L[DG]",
+        "ASTM A312-TP316L",
+        "ASTM A358-CL2-TP304/TP304L[DG]",
+        "PIPE SMLS PE SS ASTM A312-TP316L SCH40S ASME B36.19M PD CODE 6",
+        "SA312-TP304/TP304L[DG]"
+    ],
+    "CS": [
+        "ASME SA106-B",
+        "ASME SA333-6",
+        "ASTM A106 Gr B SMLS",
+        "ASTM A106-B",
+        "ASTM A139-B",
+        "ASTM A333",
+        "ASTM A333-6",
+        "ASTM A53-B",
+        "CS, ASTM A106 Gr. B"
+    ],
+    "Alloy": [
+        "ASTM A182-P21",
+        "ASTM A335-P22"
+    ]
 }
 
 piping_map: Dict[str, str] = {
