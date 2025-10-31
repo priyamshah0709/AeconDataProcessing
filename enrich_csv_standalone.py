@@ -34,8 +34,7 @@ def enrich_csv(input_csv_path: str, output_csv_path: str) -> None:
             raise ValueError("Input CSV has no header row")
         fieldnames = ensure_fieldnames_with_appends(reader.fieldnames)
 
-        # Write with BOM for better Excel compatibility
-        with open(output_csv_path, "w", encoding="utf-8-sig", newline="") as outfile:
+        with open(output_csv_path, "w", encoding="utf-8", newline="") as outfile:
             writer = csv.DictWriter(outfile, fieldnames=fieldnames, extrasaction="ignore")
             writer.writeheader()
             for row in reader:
