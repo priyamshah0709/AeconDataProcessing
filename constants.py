@@ -169,6 +169,7 @@ material_map: Dict[str, str] = {
     "PVC": "PVC and CPVC",
     "Copper": "Copper",
     "Pex Tubing": "Pex Tubing",
+    "HDPE" : "Fusion Joint Poly",
     "Alloy": "Other Alloy and Other Pipe (All-In)",
 }
 
@@ -216,6 +217,7 @@ material_codes_map = {
     ],
     "Alloy": [
         "ASTM A182-P21",
+        "ASTM A182-P22",
         "ASTM A335-P22"
     ]
 }
