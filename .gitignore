@@ -64,3 +64,17 @@ Thumbs.db
 *.tmp.csv
 *.csv.zip
 
+# CSV files
+*.csv
+*.csv.zip
+*.csv.gz
+*.csv.bz2
+*.csv.xz
+*.csv.tar
+*.csv.tar.gz
+*.csv.tar.bz2
+*.csv.tar.xz
+*.csv.tar.lzma
+*.csv.tar.lz
+*.csv.tar.lz4
+*.csv.tar.zstd
