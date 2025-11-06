@@ -34,7 +34,7 @@ UOM_COLUMN = "UOM"
 DEFAULT_UOM = "LM"
 
 # Threshold values
-GROUND_LEVEL_THRESHOLD = 0.00  # Z-coordinate above this value is considered "above ground"
+GROUND_LEVEL_THRESHOLD = 0.00  # Z-coordinate above this value is considered "above ground" change to float('-inf') for negative infinity
 
 # Data maps
 mpl_map: Dict[str, str] = {
@@ -238,7 +238,8 @@ elevation_map: Dict[str, float] = {
     "DA1-WAL-A34-XZZ-M3DM-MM-0001_detached.rvt": float('inf'),
     "DA1-WAL-A34-AZZ-M3DM-MM-0001_detached.rvt": 96.8,
     "DA1-WAL-A34-FZZ-M3DM-MM-0001_detached.rvt": 96.65,
-    "DA1-WAL-A34-MZZ-M3DM-MM-0001_detached.rvt": 96.41,    
+    "DA1-WAL-A34-MZZ-M3DM-MM-0001_detached.rvt": 96.41,
+    "DA1-SNC-ZZ-ZZ-MCMO-ZZ-0001.rvt" : 88.5,
 }
 
 piping_map: Dict[str, str] = {
