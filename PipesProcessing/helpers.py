@@ -14,6 +14,7 @@ from constants import (
     INPUT_ITEM_SOURCE_FILE,
     INPUT_AUTOCAD_COG_Z,
     INPUT_AUTOCAD_SIZE,
+    INPUT_ELEMENT_SIZE,
     INPUT_AUTOCAD_PLANT_MATERIAL,
     INPUT_ENTITY_HANDLE,
     MATERIAL_CODE_COLUMN,
@@ -30,6 +31,7 @@ from constants import (
     GROUND_LEVEL_THRESHOLD,
     mpl_map,
     material_map,
+    elevation_map,  
     material_codes_map,
     ItemMaterial_PlantMaterial_map,
     material_keys_list,
@@ -173,15 +175,20 @@ def compute_account_description(row: Dict[str, str]) -> str:
     if material_name is None:
         missing_values.append("Material")
     
-    # Step 2: Check size
-    size_raw = row.get(INPUT_AUTOCAD_SIZE)
+    # Step 2: Check size (try AutoCADSize, then fallback to ElementSize)
     size_val = None
-    if size_raw in (None, ""):
-        missing_values.append("Size")
-    else:
+    size_raw = row.get(INPUT_AUTOCAD_SIZE)
+    if size_raw not in (None, ""):
         size_val = parse_autocad_size(size_raw)
-        if size_val is None:
-            missing_values.append("Size")
+
+    if size_val is None:
+        element_size_raw = row.get(INPUT_ELEMENT_SIZE)
+        if element_size_raw not in (None, ""):
+            size_val = compute_size_from_element_size(element_size_raw)
+
+    if size_val is None:
+        # Neither AutoCADSize nor ElementSize yielded a valid size
+        missing_values.append("Size")
     
     # Step 3: Check COG_Z
     z_raw = row.get(INPUT_AUTOCAD_COG_Z)
@@ -198,8 +205,14 @@ def compute_account_description(row: Dict[str, str]) -> str:
     if len(missing_values) > 0 and ("COG_Z" in missing_values or "Size" in missing_values):
         return f"Missing values: {', '.join(missing_values)}"
     
+    # Used to determine if the pipe is above or underground
+    elevation_threshold = GROUND_LEVEL_THRESHOLD
+    # Override elevation threshold with value from elevation_map if available in case of elementId data
+    if ItemSourceFile in elevation_map:
+        elevation_threshold = elevation_map[ItemSourceFile]
+        
     # All values are present, proceed with normal logic
-    is_above_ground = z_val > GROUND_LEVEL_THRESHOLD
+    is_above_ground = z_val > elevation_threshold
     is_small_bore = size_val <= 2
 
     if is_above_ground:
@@ -255,11 +268,13 @@ def compute_material_key(material_code_value: str, item_material_value: str, ite
                 if needle == str(candidate).strip().upper():
                     return key
                 
-    # Try to derive material key from item material
+    # Try to derive material key from item material using keyword lists
     if item_material_value:
-        mapped = ItemMaterial_PlantMaterial_map.get(item_material_value)
-        if mapped:
-            return mapped
+        normalized = re.sub(r"\s+", "", str(item_material_value).lower())
+        for keywords, mapped_value in ItemMaterial_PlantMaterial_map.items():
+            # Ensure all keywords appear (as substrings) in the normalized text
+            if all(re.sub(r"\s+", "", k.lower()) in normalized for k in keywords):
+                return mapped_value
 
     # 3) Inspect item_type_value for any material key substring
     if item_type_value:
@@ -334,6 +349,54 @@ def compute_material_from_civil3dInfo(civil3dInfo: str) -> str:
             return material_key
 
     return ""
+
+def compute_size_from_element_size(element_size_raw: str | None) -> float | None:
+    """
+    Parse ElementSize text and return size in inches (float).
+
+    Rules:
+    - Strip spaces; read leading numeric (supports decimals).
+    - If a double-quote (") appears anywhere after the number, interpret the
+      number as inches.
+    - Otherwise interpret as millimeters and convert to inches using 25.4.
+    - Round to nearest 0.5 inches for consistency with other size parsers.
+
+    Examples:
+    - "50ø" → 50 mm → 1.97 in → 2.0
+    - "80 mmø" → 80 mm → 3.15 in → 3.0
+    - "12\"" → 12 inches → 12.0
+    - "50\"ø" → 50 inches → 50.0
+    - "15.6\"" → 15.6 inches → 15.5 (rounded)
+    - "15.6mm" → 15.6 mm → 0.61 in → 0.5 (rounded)
+    """
+    if not element_size_raw:
+        return None
+
+    text = re.sub(r"\s+", "", str(element_size_raw))
+    if text == "":
+        return None
+
+    # Extract leading numeric with optional decimal
+    m = re.match(r"^(\d+(?:\.\d+)?)", text)
+    if not m:
+        return None
+    try:
+        numeric_value = float(m.group(1))
+    except Exception:
+        return None
+
+    # Determine unit via presence of '"'
+    is_inch = '"' in text[m.end():] or text.endswith('"')
+
+    if is_inch:
+        inches = numeric_value
+    else:
+        # Assume millimeters
+        inches = numeric_value / 25.4
+
+    # Round to nearest 0.5
+    rounded = round(inches * 2) / 2.0
+    return float(rounded)
 
 def should_skip_row(row: Dict[str, str], fieldnames: List[str]) -> bool:
     """
