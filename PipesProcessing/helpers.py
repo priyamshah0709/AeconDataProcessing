@@ -13,12 +13,15 @@ from typing import Dict, List
 from constants import (
     INPUT_ITEM_SOURCE_FILE,
     INPUT_AUTOCAD_COG_Z,
+    INPUT_MAXZ,
     INPUT_AUTOCAD_SIZE,
     INPUT_ELEMENT_SIZE,
     INPUT_AUTOCAD_PLANT_MATERIAL,
     INPUT_ENTITY_HANDLE,
+    INPUT_ELEMENT_ID_VALUE,
     MATERIAL_CODE_COLUMN,
     ITEM_MATERIAL_COLUMN,
+    ELEMENT_MATERIAL_COLUMN,
     ITEM_TYPE_COLUMN,
     INPUT_ITEM_TYPE,
     INPUT_CIVIL3D_INFO,
@@ -149,6 +152,7 @@ def compute_account_description(row: Dict[str, str]) -> str:
     ItemType = row.get(INPUT_ITEM_TYPE)
     ItemSourceFile = row.get(INPUT_ITEM_SOURCE_FILE)
     ItemSourceFileCode = compute_mpl(ItemSourceFile)
+    is_element_id_value_present = row.get(INPUT_ELEMENT_ID_VALUE, "").strip() != ""
     
     if ItemType == "Pressure Pipe" or ItemSourceFileCode in ["CUW"]:
         # Set default values for Pressure Pipe
@@ -163,7 +167,7 @@ def compute_account_description(row: Dict[str, str]) -> str:
     material_name = None
     if material_key in (None, ""):
         # Fallback: try to infer from material code column
-        inferred_key = compute_material_key(row.get(MATERIAL_CODE_COLUMN), row.get(ITEM_MATERIAL_COLUMN), row.get(ITEM_TYPE_COLUMN))
+        inferred_key = compute_material_key(row.get(MATERIAL_CODE_COLUMN), row.get(ITEM_MATERIAL_COLUMN), row.get(ITEM_TYPE_COLUMN), row.get(ELEMENT_MATERIAL_COLUMN), is_element_id_value_present)
         if inferred_key:
             material_key = inferred_key
     
@@ -191,7 +195,13 @@ def compute_account_description(row: Dict[str, str]) -> str:
         missing_values.append("Size")
     
     # Step 3: Check COG_Z
-    z_raw = row.get(INPUT_AUTOCAD_COG_Z)
+
+    # If it is elementId data, we need to use Maxz column, otherwise we use AutoCADCOG_Z column for entityHandle data
+    if is_element_id_value_present:
+        z_raw = row.get(INPUT_MAXZ)
+    else:
+        z_raw = row.get(INPUT_AUTOCAD_COG_Z)
+
     z_val = None
     if z_raw in (None, ""):
         missing_values.append("COG_Z")
@@ -207,8 +217,9 @@ def compute_account_description(row: Dict[str, str]) -> str:
     
     # Used to determine if the pipe is above or underground
     elevation_threshold = GROUND_LEVEL_THRESHOLD
+    
     # Override elevation threshold with value from elevation_map if available in case of elementId data
-    if ItemSourceFile in elevation_map:
+    if is_element_id_value_present and ItemSourceFile in elevation_map:
         elevation_threshold = elevation_map[ItemSourceFile]
         
     # All values are present, proceed with normal logic
@@ -246,7 +257,7 @@ def compute_account_description(row: Dict[str, str]) -> str:
             else "Underground Large Bore Pipe"
         )
 
-def compute_material_key(material_code_value: str, item_material_value: str, item_type_value: str) -> str:
+def compute_material_key(material_code_value: str, item_material_value: str, item_type_value: str, element_material_value: str, is_element_id_value_present: bool) -> str:
     """
     Infer the material key (e.g., "SS", "CS", "PVC", "Alloy") from a
     material code string by matching exactly against any value contained in
@@ -260,6 +271,17 @@ def compute_material_key(material_code_value: str, item_material_value: str, ite
 
     Returns the material key if found, otherwise an empty string.
     """
+
+    # CASE 1: IN CASE OF ELEMENT ID DATA, WE NEED TO DERIVE MATERIAL FROM ELEMENT MATERIAL COLUMN
+    if is_element_id_value_present and element_material_value not in (None, ""):
+        normalized = re.sub(r"\s+", "", str(element_material_value).lower())
+        for keywords, mapped_value in ItemMaterial_PlantMaterial_map.items():
+            # Ensure all keywords appear (as substrings) in the normalized text
+            if all(re.sub(r"\s+", "", k.lower()) in normalized for k in keywords):
+                return mapped_value
+
+
+    # CASE 2: IN CASE OF ENTITY HANDLE DATA, WE NEED TO DERIVE MATERIAL BASED ON 3 COLUMNS: MATERIAL CODE, ITEM MATERIAL, AND ITEM TYPE
     # Try to derive material key from material code
     if material_code_value:
         needle = str(material_code_value).strip().upper()
@@ -414,11 +436,20 @@ def should_skip_row(row: Dict[str, str], fieldnames: List[str]) -> bool:
         True if the row should be skipped, False otherwise
     """
     # Only check entity_handle if the column exists in the CSV
-    if INPUT_ENTITY_HANDLE not in fieldnames:
-        return False
+    if INPUT_ENTITY_HANDLE not in fieldnames and INPUT_ELEMENT_ID_VALUE not in fieldnames:
+        return True    # If neither column exists, skip the row
     
     entity_handle = row.get(INPUT_ENTITY_HANDLE, "").strip()
-    return not entity_handle
+    element_id_value = row.get(INPUT_ELEMENT_ID_VALUE, "").strip()
+    if entity_handle == "" and element_id_value == "":    # If both columns are empty, skip the row
+        return True
+    if entity_handle != "" and element_id_value != "":    # If both columns are not empty, skip the row
+        return True
+    if entity_handle != "" and element_id_value == "":
+        return False
+    if entity_handle == "" and element_id_value != "":
+        return False
+    return True
 
 
 def enrich_row(row: Dict[str, str]) -> Dict[str, str]:

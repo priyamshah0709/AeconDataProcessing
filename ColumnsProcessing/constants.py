@@ -75,46 +75,97 @@ MPL_DESC_COLUMN = "MPL_DESCRIPTION"
 #     "95.83.08.006.04": ["M2"]   
 # }
 
+item_type_to_skip = ["centerline", "lines", "rooms", "pipes:pipetypes", "spaceseparation", 
+    "roomseperation", "levels:level", "pipefittings:", "grids:grid", "gridheads", "parking", 
+    "spaces", "modeltext", " northarrow", "levelhead", "loadingvehicle", ".dwg", "siteinfo", "legend"]
+
+
 # Mapping: Account Description -> List of item identifiers
 description_to_items: Dict[Tuple[str, str, str], List[str]] = {
-    ("Stairs", "62.18.04", "LM"): [
-        "ACPPSTRUCTURESTAIR",
-        "Assembled Stair"
+    ("Building HVAC - Grills and Diffuser Installation", "83.23.22", "EA"):     [
+        "Exhaust Fan",
+        "Daikin",
+        "grille",
+        "exhaustlouvre",
+        "air terminal",
+        "air louvre"
     ],
-    ("Railings", "62.18.12", "LM") : [
-        "Railings",
-        "Handrail",
-        "Top Rail"
+    ("Building HVAC - Fan Installation", "83.23.24", "EA"):     [
+        "Fan",
+        "fan coil"
     ],
-    ("Gratings", "62.18.14", "M2"): [
+    ("Building HVAC - Ventilation Unit", "83.23.42", "EA"):     [
+        "VAV Box",
+    ],
+    ("Building HVAC - Misc. Equipment", "83.23.32", "EA"):     [
+        "Mechanical Equipment"
+    ],
+    ("Cable Tray Supports / Cable Supports", "81.06.06", "Ea"):     [
+        "Cable Tray Fittings"
+    ],
+    ("Electrical Devices", "81.27.02", "Ea"):     [
+        "Electrical Fixtures"
+    ],
+    ("Specialty Systems - Plant Communications", "81.33.02", "Ea"):     [
+        "Ceiling_Speaker"
+    ],
+    ("Specialty Systems - Distributed Antenna System (DAS)", "81.33.24", "Ea"):     [
+        "Radio_Indoor_Antenna"
+    ],
+    ("Curtain Wall and Glazed Assemblies Subcontracts", "95.83.08.006.04", "M2"):     [
+        "K-Roc"
+    ],
+    ("Permanent Fences and Gates", "55.12.10", "LM"):     [
+        "Chainlink Fence"
+    ],
+    ("Concrete Cylinder Piles", "60.03.16", "M3"):     [
+        "ATK_DNNP_PILE",
+        "Column-Concrete-Round"
+    ],
+    ("Caisson - Concrete", "60.09.02", "M3"):     [
+        "Caisson",
+        "Caisson1",
+        "CAISSON"
+    ],
+    ("Gratings", "62.18.14", "M2"):     [
         "Grate",
         "Grating",
         "Floors: Floor: Metal Floor Assembly ",
         "MTL FLOOR ASSEMBLY"
     ],
-    ("Anchor Bolts", "61.30.02", "Ea"): [
+    ("Stairs", "62.18.04", "LM"):     [
+        "ACPPSTRUCTURESTAIR",
+        "Assembled Stair"
+    ],
+    ("Stairs - Pan Filled (Incl. Landings)", "61.09.24", "M3"):     [
+        "Stairs"
+    ],
+    ("Railings", "62.18.12", "LM"):     [
+        "Railing",
+        "Handrail",
+        "Top Rail",
+        "Handrail"
+    ],
+    ("Anchor Bolts", "61.30.02", "Ea"):     [
         "Anchor Bolt",
         "ANCHOR ROD"
     ],
-    ("Cable Tray Supports / Cable Supports", "81.06.06", "Ea"): [
-        "Cable Tray Fittings"
+    ("Concrete on Metal Deck", "61.09.14", "M3"):     [
+        "Floors: Floor: 38mmX0.91mm  Metal Roof Deck",
+        "Floors: Floor: 160mm Concrete With 76mm Metal Deck",
+        "Floors: Floor: 300 THK SLAB + 75 DECK",
+        "Floors: Floor: 250 THK SLAB + 75 DECK",
+        "Floors: Floor: 760THK COMPOSITE SLAB + 75 DECK",
+        "Floors: Floor: 160mm Concrete With 50mm Metal Deck",
+        "Floors: Floor: 240THK DECK SLAB",
+        "Floors: Floor: 240THK CONCRETE ON METAL DECK",
+        "Floors: Floor: Metal Roof Deck (1 1/2\" x 6\" WR)",
+        "Floors: Floor: Metal Roof Deck (3\" x 8\" DR)"
     ],
-    ("Caisson - Concrete", "60.09.02", "M3"): [
-        "Caisson",
-        "Caisson1",
-        "CAISSON"
+    ("Topping Concrete", "61.03.14", "M3"):     [
+        "Topping"
     ],
-    ("Concrete Cylinder Piles", "60.03.16", "M3"): [
-        "ATK_DNNP_PILE",
-        "Column-Concrete-Round"
-    ],
-    ("Curtain Wall and Glazed Assemblies Subcontracts", "95.83.08.006.04", "M2"): [
-        "K-Roc"
-    ],
-    ("Electrical Devices", "81.27.02", "Ea"): [
-        "Electrical Fixtures"
-    ],
-    ("Footings", "61.03.10", "M3"): [
+    ("Footings", "61.03.10", "M3"):     [
         "Floors: Floor: 400 THK PIER",
         "FOOTING",
         "Footing-Rectangular:",
@@ -122,55 +173,220 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
         "Floors: Floors 6: Floors 6",
         "Floors: Floor: Generic - SF2"
     ],
-    ("Module Assembly", "62.03.04", "LM"): [
+    ("Specialty Walls", "61.06.06", "Ea"):     [
+        "Generic Models: Corbel: Corbel"
+    ],
+    ("Module Assembly", "62.03.04", "LM"):     [
         "ACPPSTRUCTURELADDER",
         "ACPPSTRUCTURERAILING",
         "Ladder"
     ],
-    ("Module Assembly", "62.03.04", "Ea"): [
+    ("Module Assembly", "62.03.04", "Ea"):     [
         "Generic Models: BASEPLATE",
         "Generic Models: RING: RING",
         "TB- BP UNBRACED",
         "Structural Connections: WF-Column_BP-Steel_Face Based"
-    ],    
-    ("Permanent Fences and Gates", "55.12.10", "LM"): [
-        "Chainlink Fence"
     ],
-    ("Specialty Systems - Distributed Antenna System (DAS)", "81.33.24", "Ea"): [
-        "Radio_Indoor_Antenna"
+    ("Above Ground Conduit", "81.03.02", "LM"):     [
+        "Conduit Fittings: Conduit Elbow - without Fittings - EMT: Standard",
+        "Conduits: Conduit with Fittings: Electrical Metallic Tubing (EMT)",
+        "Conduits: Conduit with Fittings: R31-CON-20001-10M-4\"",
+        "Conduits: Conduit with Fittings: R31-CON-20001-9M-4\"",
+        "Conduits: Conduit with Fittings: R31-CON-20002-10M-4\"",
+        "Conduits: Conduit with Fittings: R31-CON-20002-9M-4\"",
+        "Conduits: Conduit with Fittings: R31-CON-20003-9M-4\"",
+        "Conduits: Conduit without Fittings: R31-CON-10001-1L-3\"",
+        "Conduits: Conduit without Fittings: R31-CON-10001-3L-3\"",
+        "Conduits: Conduit without Fittings: R31-CON-30002-1L-3\"",
+        "Conduits: Conduit without Fittings: R31-CON-30002-3L-3\"",
+        "Conduits: Conduit without Fittings: Conduit"
     ],
-    ("Specialty Systems - Plant Communications", "81.33.02", "Ea"): [
-        "Ceiling_Speaker"
+    ("Cable Trays for Electrical Systems", "81.06.02", "EA"):     [
+        "Cable Trays: Cable Tray with Fittings:"
     ],
-    ("Specialty Walls", "61.06.06", "Ea"): [
-        "Generic Models: Corbel: Corbel"
+    ("Cable Tray Supports / Cable Supports", "81.06.06", "EA"):     [
+        "Cable Tray Fittings: ",
+        "Cable Tray Hanger"
     ],
-    ("Structural Steel Industrial Structures", "62.03.02", "Ea"): [
-        "Nut",
-        "Washer",
-        "Screws"
+    ("Large Facility Electrical Equipment", "81.24.02", "EA"):     [
+        "Electrical Equipment: Generator: Generator"
     ],
-    ("Topping Concrete", "61.03.14", "M3"): [
-        "Topping"
+    ("Specialty Systems - Plant Communications", "81.33.02", "EA"):     [
+        "Communication Devices:"
     ],
-    ("Structural Steel Industrial Structures", "62.03.02", "Ton"): [
+    ("Specialty Systems - Fire and Gas Detection", "81.33.06", "EA"):     [
+        "Fire Alarm Devices"
+    ],
+    ("Lighting - Specialty / Other fixtures", "81.36.06", "EA"):     [
+        "Lighting Fixtures",
+        "Lighting Devices"
+    ],
+    ("Unit Masonry", "83.04.02", "M2"):     [
+        "Brick"
+    ],
+    ("Thermal Moisture Protection - Damp Proofing", "83.07.02", "M2"):     [
+        "Walls: Basic Wall: EW-FDN Insulation"
+    ],
+    ("Metal Doors and Frames", "83.08.02", "EA"):     [
+        "Doors"
+    ],
+    ("Concrete Accessories - Install Grout", "61.24.02", "M3"):     [
+        "Grout: Plate Grout"
+    ],
+    ("Concrete Accessories - Void Forms", "61.24.18", "M3"):     [
+        "Circular Opening Level Based"
+    ],
+    ("Metal Decking / Plating", "62.12.02", "M3"):     [
+        "Checkerplate",
+        "Floors: Floor: Rigid Insulation 1 1/2\" + Coverboard 1/2\" + Membrane 1/8\""
+    ],
+    ("Columns", "61.06.08", "M3"):     [
+        "Structural Columns: M_Concrete",
+        "Structural Columns: Concrete",
+        "Structural Columns: M_Precast",
+        "Structural Columns: Column-Concrete"
+    ],
+    ("Sprinkler Heads", "72.46.04.025", "EA"):     [
+        "Sprinklers"
+    ],
+    ("Underground Misc Conduit", "81.03.04", "LM"):     [
+        "Conduits: Conduit without Fittings: Rigid Nonmetallic Conduit (RNC)",
+        "Conduits: Conduit without Fittings: Rigid Metallic Conduit (RNC)",
+        "Conduits: Conduit without Fittings: Rigid Nonmetallic Conduit ((RNC Sch 40)"
+    ],
+    ("Underground Misc Conduit - OTHER (>=4\") - Conduit / Support / Fittings", "81.03.04.020.02", "EA"):     [
+        "Conduit Fittings: Conduit Elbow - without Fittings - RMC: Standard",
+        "Conduit Fittings: Conduit Body - Type L - UP - RMC: LB"
+    ],
+    ("Exterior Metal Stud High Wall System (Height 8' and Higher) - All Sizes", "83.09.04", "M2"):     [
+        "Walls: Basic Wall: EW1b - Metal Clad Rainscreen Wall - 8\" Stud",
+        "Walls: Basic Wall: EW1a - Metal Clad Rainscreen Wall - 6\" Stud",
+        "Walls: Basic Wall: EW1c - Metal Clad Rainscreen Wall - 10\" Gap _FOR VEST",
+        "Walls: Basic Wall: EW1c - Metal Clad Rainscreen Wall - Concrete Back-up"
+    ],
+    ("Interior Metal Stud High Wall Framing (Height 8\" and Higher) - All Sizes", "83.09.08", "M2"):     [
+        "Walls: Basic Wall: P"
+    ],
+    ("Metal Stud Assembly - Insulation and Vapor Barrier", "83.09.14", "M2"):     [
+        "Walls: Basic Wall: Metal Wall Panel 1 1/2\" (Insulated)"
+    ],
+    ("Finishes - Tile Work", "83.09.34", "M2"):     [
+        "Floors: Floor: 25mm Access Tile"
+    ],
+    ("Toilet, Bath, and Laundry Accessories", "83.10.08", "EA"):     [
+        "Plumbing Fixtures: ",
+        "Casework: Counter Top w Sink:"
+    ],
+    ("Building Equipment - Parking Control Equipment", "83.11.04", "EA"):     [
+        "BOLLARD"
+    ],
+    ("Furnishings - Site Furnishings", "83.12.20", "EA"):     [
+        "Furniture:",
+        "Casework: Granite",
+        "Electrical Fixtures: _WF_Wall Box: Furniture Feed",
+        "Furniture Systems:"
+    ],
+    ("Building HVAC - Ductwork Installation", "83.23.20", "EA"):     [
+        "Duct Fittings:"
+    ],
+    ("Building HVAC - Ductwork Installation", "83.23.20", "LM"):     [
+        "Ducts"
+    ],
+    ("Building Openings Subcontracts", "95.83.08", "EA"):     [
+        "Curtain Wall Mullions"
+    ],
+    ("Building HVAC - Ventilation Unit", "83.23.42", "EA"):     [
+        "Mechanical Equipment: Air_Handling_Unit-Vertical-Daikin-FXTQ_TAVJU: 5 Ton_FXTQ60TAVJUA",
+        "AHU",
+        "AHU-",
+        "AHUs",
+        "AFU systems:",
+        "Mechanical Equipment: FTRN:",
+        "Mechanical Equipment: Nuclear Project - AAF",
+        "Mechanical Equipment: RWB Roof Design_AHU:"
+    ],
+    ("Misc Equipment / Wall Supports", "62.18.20", "EA"):     [
+        "Conduit Wall Penetration Sleeve",
+        "Conduit Wall Penetration",
+        "Conduit Fittings: "
+    ],
+    ("Abutments and Wing Walls", "61.06.04", "M3"):     [
+        "Walls: Basic Wall: DP-SC",
+        "Walls: Basic Wall: SCCV DP-SC",
+        "Walls: Basic Wall: PEDESTAL DP-SC",
+        "Walls: Basic Wall: SCCV DP-SC",
+        "Walls: Basic Wall: Shield DP-SC",
+        "Walls: Basic Wall: DP-SC",
+        "Walls: Basic Wall: SCCV DP-SC",
+        "Walls: Basic Wall: PEDESTAL DP-SC",
+        "Walls: Basic Wall: SCCV DP-SC",
+        "Walls: Basic Wall: Shield DP-SC"
+    ],
+    ("Tunnel Concrete", "85.12.04", "M3"):     [
+        "Generic Models: Tunnel",
+        "Structural Foundations: Foundation Slab: Concrete Slab -1000 mm",
+        "Structural Foundations: Foundation Slab: Mud Slab - 75mm",
+        "Walls: Basic Wall: Concrete - Cast in Place - 1000mm",
+        "Generic Models: Slab Void: Slab Void",
+        "Generic Models: panel: panel",
+        "Generic Models: interface: interface",
+        "Generic Models: Pipes horizontal: 10x2x200",
+        "Structural Foundations: Foundation Slab: Slab on Grade - Concrete - 650mm",
+        "Walls: Basic Wall: SHAFT WALL - 600mm",
+        "Walls: Basic Wall: SHAFT WALL - 12 Conc",
+        "Generic Models: Connection Pipe to Tunnel",
+        "Generic Models: lower pipe",
+        "Generic Models: concrete: concrete",
+        "Walls: Basic Wall: SHAFT WALL - 220 Conc",
+        "Generic Models: 6050 tunnel: 6050 tunnel",
+        "Walls: Basic Wall: SHAFT WALL - 75",
+        "Walls: Basic Wall: SHAFT WALL - 87 Conc",
+        "Generic Models: BASE: 1036 tunnel",
+        "Generic Models: Tunnel",
+        "Structural Foundations: Foundation Slab: Concrete Slab -1000 mm",
+        "Structural Foundations: Foundation Slab: Mud Slab - 75mm",
+        "Walls: Basic Wall: Concrete - Cast in Place - 1000mm",
+        "Generic Models: Slab Void: Slab Void",
+        "Generic Models: panel: panel",
+        "Generic Models: interface: interface",
+        "Generic Models: Pipes horizontal: 10x2x200",
+        "Structural Foundations: Foundation Slab: Slab on Grade - Concrete - 650mm",
+        "Walls: Basic Wall: SHAFT WALL - 600mm",
+        "Walls: Basic Wall: SHAFT WALL - 12 Conc",
+        "Generic Models: Connection Pipe to Tunnel",
+        "Generic Models: lower pipe",
+        "Generic Models: concrete: concrete",
+        "Walls: Basic Wall: SHAFT WALL - 220 Conc",
+        "Generic Models: 6050 tunnel: 6050 tunnel",
+        "Walls: Basic Wall: SHAFT WALL - 75",
+        "Walls: Basic Wall: SHAFT WALL - 87 Conc",
+        "Generic Models: BASE: 1036 tunnel"
+    ],
+    ("Structural Steel Industrial Structures", "62.03.02", "Ton"):     [
         "Truss Gusset",
         "ACPPSTRUCTUREBEAM",
         "Structural Columns",
         "Structural Framing",
         "Structural Rebar",
-        "Rebar",
+        "Rebar"
     ],
-    ("Module Assembly", "62.03.04", "Ton"): [
+    ("Structural Steel Industrial Structures", "62.03.02", "Ea"):     [
+        "Nut",
+        "Washer",
+        "bolts",
+        "Screws",
+        "Nuts"
+    ],
+    ("Module Assembly", "62.03.04", "Ton"):     [
         "ACPPSTRUCTUREPLATE",
         "Gusset",
         "Structural Stiffeners",
-        "Structural Connections",
+        "Structural Connections"
     ],
-    ("Grade Beams", "61.03.12", "M3"): [
+    ("Grade Beams", "61.03.12", "M3"):     [
         "Slab Edges: Slab Edge: Slab Edge 3500X3500",
         "Structural Framing: Precast-Rectangular Beam: 3600x2000x800",
-        "Slab Edges: Slab Edge: Slab Edge",
+        "Slab EdGES: Slab Edge: Slab Edge",
         "Grade Beam",
         "Structural Framing: Beam-Concrete-Rectangular: 1500 x 1000",
         "Structural Foundations: Wall Foundation: STRIP FTG 1000x400 (SF01)",
@@ -182,12 +398,22 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
         "Walls: Basic Wall: CONC. FDN 600",
         "Walls: Basic Wall: CONC. FDN 700 (FW02)"
     ],
-        ("Slab on Grade/Mass Slabs", "61.03.06", "M3"): [
+    ("Slab on Grade/Mass Slabs", "61.03.06", "M3"):     [
         "Slab on grade",
         "Foundation Slab",
         "Floors: Floor:",
-        "Walls: Basic Wall: ISM_Wall"
-    ]
+        "Walls: Basic Wall: ISM_Wall",
+        "Structural Foundation"
+    ],
+    ("Cast in Place Walls", "61.06.02", "M3"):     [
+        "Walls: Basic Wall: ISM_Wall",
+    ],
+    ("Cast In Place Concrete Girders / Beams", "61.09.16", "M3"):     [
+        "Structural Framing: M_Concrete-Rectangular Beam"
+    ],
+    ("Conduit", "81.03", "LM"):     [
+        "Conduits:"
+    ],
 }
 
 # MPL map reused from PipesProcessing

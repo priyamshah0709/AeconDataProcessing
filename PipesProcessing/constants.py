@@ -9,15 +9,18 @@ from typing import Dict
 
 # Input column names (columns to read from source CSV)
 INPUT_ITEM_SOURCE_FILE = "ItemSourceFile"
-INPUT_AUTOCAD_COG_Z = "AutoCADCOG_Z"      # Maxz for elementId data    -  AutoCADCOG_Z for entityHandle data
+INPUT_AUTOCAD_COG_Z = "AutoCADCOG_Z"
+INPUT_MAXZ = "Maxz"
 INPUT_AUTOCAD_SIZE = "AutoCADSize"         
 INPUT_ELEMENT_SIZE = "ElementSize"
 INPUT_AUTOCAD_PLANT_MATERIAL = "AutoCADPlantMaterial"
-INPUT_ENTITY_HANDLE = "EntityHandle"      # ElementIDValue for elementId data   -  EntityHandle for entityHandle data
+INPUT_ENTITY_HANDLE = "EntityHandle"
+INPUT_ELEMENT_ID_VALUE = "ElementIDValue"
 INPUT_ITEM_TYPE = "ItemType"
 INPUT_CIVIL3D_INFO = "Civil3DInformation:Description"
 MATERIAL_CODE_COLUMN = "AutoCADMaterialCode"
-ITEM_MATERIAL_COLUMN = "ItemMaterial"      # ElementMaterial for elementId data   -  ItemMaterial for entityHandle data
+ITEM_MATERIAL_COLUMN = "ItemMaterial"
+ELEMENT_MATERIAL_COLUMN = "ElementMaterial"
 ITEM_TYPE_COLUMN = "ItemType"
 
 # Output column names (columns to write to enriched CSV)
@@ -31,7 +34,7 @@ UOM_COLUMN = "UOM"
 DEFAULT_UOM = "LM"
 
 # Threshold values
-GROUND_LEVEL_THRESHOLD = 0.00  # Z-coordinate above this value is considered "above ground"
+GROUND_LEVEL_THRESHOLD = 0.00  # Z-coordinate above this value is considered "above ground" change to float('-inf') for negative infinity
 
 # Data maps
 mpl_map: Dict[str, str] = {
@@ -179,12 +182,15 @@ material_map: Dict[str, str] = {
 # are found as substrings in the ItemMaterial value, we map to the material key.
 ItemMaterial_PlantMaterial_map: Dict[tuple[str, ...], str] = {
     ("stainless", "steel"): "SS",
+    ("stain", "steel"): "SS",
     ("carbon", "steel"): "CS",
+    ("galv", "steel"): "CS",
     ("pvc",): "PVC",
     ("plastic",): "Pex Tubing",
     ("copper",): "Copper",
     ("polyvinyl", "chloride"): "PVC",
     ("galvanized", "steel"): "CS",
+    ("hdpe",): "HDPE",
 }
 
 material_codes_map = {
@@ -232,7 +238,8 @@ elevation_map: Dict[str, float] = {
     "DA1-WAL-A34-XZZ-M3DM-MM-0001_detached.rvt": float('inf'),
     "DA1-WAL-A34-AZZ-M3DM-MM-0001_detached.rvt": 96.8,
     "DA1-WAL-A34-FZZ-M3DM-MM-0001_detached.rvt": 96.65,
-    "DA1-WAL-A34-MZZ-M3DM-MM-0001_detached.rvt": 96.41,    
+    "DA1-WAL-A34-MZZ-M3DM-MM-0001_detached.rvt": 96.41,
+    "DA1-SNC-ZZ-ZZ-MCMO-ZZ-0001.rvt" : 88.5,
 }
 
 piping_map: Dict[str, str] = {
