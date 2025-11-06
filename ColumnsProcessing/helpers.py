@@ -21,6 +21,7 @@ from constants import (
     # account_desc_to_code_map,
     # account_code_to_uom_map,
     description_to_items,
+    item_type_to_skip,
     mpl_map,
 )
 
@@ -150,9 +151,10 @@ def should_skip_row(row: Dict[str, str], fieldnames: List[str]) -> bool:
     """
     Determine if a row should be skipped during processing.
 
-    A row is skipped if the `EntityHandle` column exists in the CSV and is
-    empty or contains only whitespace. If the column doesn't exist, rows
-    are not skipped.
+    A row is skipped if:
+    1. The `EntityHandle` column doesn't exist in the CSV
+    2. The `EntityHandle` column is empty or contains only whitespace
+    3. The `ItemType` contains any substring from the skip list
 
     Args:
         row: Dictionary containing the CSV row data
@@ -161,9 +163,25 @@ def should_skip_row(row: Dict[str, str], fieldnames: List[str]) -> bool:
     Returns:
         True if the row should be skipped, False otherwise
     """
+    # Check if EntityHandle column exists
     if INPUT_ENTITY_HANDLE not in fieldnames:
-        return False
-    entity_handle = row.get(INPUT_ENTITY_HANDLE, "").strip()
-    return not entity_handle
+        return True
 
+    # Check if EntityHandle is empty
+    entity_handle = row.get(INPUT_ENTITY_HANDLE, "").strip()
+    if entity_handle == "":
+        return True
+
+    # Check if ItemType contains any skip substring
+    item_type = row.get(INPUT_ITEM_TYPE, "")
+    if item_type:
+        # Normalize by removing all whitespace and lowercasing
+        norm_item_type = "".join(item_type.lower().split())
+        
+        for skip_item in item_type_to_skip:
+            norm_skip_item = "".join(skip_item.lower().split())
+            if norm_skip_item and norm_skip_item in norm_item_type:
+                return True
+
+    return False
 
