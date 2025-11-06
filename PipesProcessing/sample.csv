@@ -1,0 +1,31 @@
+ItemSourceFile,AutoCADCOG_Z,AutoCADSize,AutoCADPlantMaterial,AutoCADMaterialCode,ItemMaterial,Description,Quantity,ItemType,Civil3DInformation:Description,EntityHandle
+GEH-BWRX-A10-001,5.2,2.5",SS,,,Small bore stainless steel pipe,100,,,EH1
+GEH-BWRX-B21-002,12.8,8",CS,,,Medium bore carbon steel pipe,75,,,EH2
+GEH-BWRX-C10-003,-3.5,1.5",PVC,,,Underground small bore PVC pipe,50,,,EH3
+GEH-BWRX-G12-004,0,14",CS,,,Large bore carbon steel pipe,25,,,EH4
+GEH-BWRX-H10-005,8.0,3/4,Alloy,,,Small bore alloy pipe with fraction size,120,,,EH5
+GEH-BWRX-K30-006,-1.2,24",SS,,,Underground large bore stainless steel,30,,,EH6
+GEH-BWRX-N21-007,15.3,1 1/2,CS,,,Small bore mixed number size,200,,,EH7
+GEH-BWRX-U71-008,10.5,48",CS,,,Large bore carbon steel,10,,,EH8
+GEH-BWRX-Y99-009,-5.0,6",PVC,,,Underground PVC pipe,45,,,EH9
+GEH-BWRX-R10-010,20.0,96",SS,,,Very large bore stainless steel,5,,,EH10
+GEH-BWRX-R10-011,,14",CS,,,Large bore carbon steel pipe,10,,,EH11
+GEH-BWRX-R10-012,10.0,,SS,,,Very large bore stainless steel,5,,,EH12
+GEH-BWRX-R10-013,,14",,ASTM A312-TP316L,,Large bore carbon steel pipe,10,,,EH13
+GEH-BWRX-R10-014,10.0,,,ASTM A106 Gr B SMLS,,Large bore carbon steel pipe,10,,,EH14
+GEH-BWRX-R10-015,10.0,10",,ASTM A312-TP316L,,Material code maps to SS,5,,,EH20
+GEH-BWRX-R10-016,10.0,10",,ASTM A106 Gr B SMLS,,Material code maps to CS,5,,,EH21
+GEH-BWRX-R10-017,10.0,10",,ASTM A182-P21,,Material code maps to Alloy,5,,,EH22
+GEH-BWRX-R10-018,10.0,10",,UNKNOWN CODE,,Unknown material code,5,,,EH23
+GEH-BWRX-R10-019,10.0,10",,,Stainless Steel,ItemMaterial maps to SS,5,,,EH24
+GEH-BWRX-R10-020,10.0,10",,,Steel, Carbon,ItemMaterial maps to CS,5,,,EH25
+GEH-BWRX-R10-021,10.0,10",,,Plastic,ItemMaterial maps to PVC,5,,,EH26
+GEH-BWRX-R10-022,10.0,10",,,,ItemType maps to PVC,5,"Pipes: Pipe Types: ATK_ME_PVC",,EH27
+GEH-BWRX-R10-023,10.0,10",,,,ItemType maps to SS,5,"Subsystem: SS Material",,EH28
+PP-CUW-0001,,,,,,Pressure pipe PVC with mm size,1,Pressure Pipe,140.00m-300mm PVC DR-18,EH15
+PP-CUW-0002,,,,,,Pressure pipe PVC with in parentheses,1,Pressure Pipe,130.09m-100mm (4") PVC DR-18,EH16
+PP-CUW-0003,,,,,,Pressure pipe HDPE mmØ size (material not mapped),1,Pressure Pipe,315mmØ HDPE,EH17
+PP-CUW-0004,,,,,,Pressure pipe HDPE mmØ size (material not mapped),1,Pressure Pipe,160mmØ HDPE,EH18
+PP-CUW-0005,,,,,,Pressure pipe PVC with parentheses inches,1,Pressure Pipe,35.83m-100mm (4") PVC DR-18,EH19
+SKIP-ROW-001,5.0,2",CS,,,,This row will be skipped due to empty EntityHandle,1,,,, 
+

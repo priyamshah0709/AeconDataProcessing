@@ -1,0 +1,15 @@
+ItemSourceFile,ItemType,ElementID,Notes
+GEH-BWRX-300-A10-001,Anchor Bolt Assembly,EH1,Should map Anchor Bolts (61.30.02 Ea)
+GEH-BWRX-300-C10-123,Ceiling_Speaker Mount,EH2,Should map Plant Communications (81.33.02 Ea)
+GEH-BWRX-300-C11-456,Radio_Indoor_Antenna - ceiling,EH3,Should map DAS (81.33.24 Ea)
+GEH-BWRX-300-N21-777,ACPPSTRUCTUREPLATE bracket,EH4,Should map Module Assembly (62.03.04 Ton)
+GEH-BWRX-300-U41-888,ACPPSTRUCTURELADDER - vertical,EH5,Should map Module Assembly (62.03.04 LM)
+GEH-BWRX-300-A12-999,Generic Models: BASEPLATE,EH6,Should map Module Assembly (62.03.04 Ea)
+GEH-BWRX-300-A40-321,Grating panel,EH7,Should map Gratings (62.18.14 M2)
+GEH-BWRX-300-U31-654,ACPPSTRUCTURESTAIR - steel,EH8,Should map Stairs (62.18.04 LM)
+GEH-BWRX-300-Y53-987,Chainlink Fence Corner,EH9,Should map Permanent Fences and Gates (55.12.10 LM)
+GEH-BWRX-300-A14-000,Unknown component,EH10,No match expected (empty code/desc/uom)
+GEH-BWRX-300-A25-111,   Truss    Gusset   ,EH11,Whitespace variation; map Structural Steel (62.03.02 Ton)
+GEH-BWRX-300-A31-222,Nut, washer & screws,EH12,Punctuation; map Structural Steel (62.03.02 Ea)
+GEH-BWRX-300-C10-999,Ceiling_Speaker,  ,Skip row (blank ElementID)
+INVALID,Ceiling_Speaker,EH13,Invalid ItemSourceFile -> MPL empty
