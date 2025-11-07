@@ -113,8 +113,9 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
         "Radio_Indoor_Antenna"
     ],
     ("Curtain Wall and Glazed Assemblies Subcontracts", "95.83.08.006.04", "M2"):     [
-        "K-Roc"
-    ],
+        "K-Roc",
+        "Curtain Panels:"
+    ], # Moved "curtain wall" below building openings subcontracts to avoid duplication
     ("Permanent Fences and Gates", "55.12.10", "LM"):     [
         "Chainlink Fence"
     ],
@@ -147,8 +148,10 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
         "Handrail"
     ],
     ("Anchor Bolts", "61.30.02", "Ea"):     [
+        "Anchor",
         "Anchor Bolt",
-        "ANCHOR ROD"
+        "ANCHOR ROD",
+        "Rock Anchor"
     ],
     ("Concrete on Metal Deck", "61.09.14", "M3"):     [
         "Floors: Floor: 38mmX0.91mm  Metal Roof Deck",
@@ -231,6 +234,7 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
         "Doors"
     ],
     ("Concrete Accessories - Install Grout", "61.24.02", "M3"):     [
+        "Grout",
         "Grout: Plate Grout"
     ],
     ("Concrete Accessories - Void Forms", "61.24.18", "M3"):     [
@@ -294,6 +298,9 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
     ],
     ("Building Openings Subcontracts", "95.83.08", "EA"):     [
         "Curtain Wall Mullions"
+    ],
+    ("Curtain Wall and Glazed Assemblies Subcontracts", "95.83.08.006.04", "M2"):     [
+        "Curtain Wall"
     ],
     ("Building HVAC - Ventilation Unit", "83.23.42", "EA"):     [
         "Mechanical Equipment: Air_Handling_Unit-Vertical-Daikin-FXTQ_TAVJU: 5 Ton_FXTQ60TAVJUA",
@@ -368,20 +375,26 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
         "Structural Columns",
         "Structural Framing",
         "Structural Rebar",
-        "Rebar"
+        "Rebar",
+        "Sagrod",
+        "SHIELDING WALL-REMOVABLE"
     ],
     ("Structural Steel Industrial Structures", "62.03.02", "Ea"):     [
         "Nut",
         "Washer",
         "bolts",
         "Screws",
-        "Nuts"
+        "Nuts",
+        "Hardware",
+        "RING2"
     ],
     ("Module Assembly", "62.03.04", "Ton"):     [
         "ACPPSTRUCTUREPLATE",
         "Gusset",
         "Structural Stiffeners",
-        "Structural Connections"
+        "Structural Connections",
+        "grill",
+        "Y86 Space Reservation"
     ],
     ("Grade Beams", "61.03.12", "M3"):     [
         "Slab Edges: Slab Edge: Slab Edge 3500X3500",
@@ -407,6 +420,16 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
     ],
     ("Cast in Place Walls", "61.06.02", "M3"):     [
         "Walls: Basic Wall: ISM_Wall",
+        "Wall: Conc"
+        "Wall: Concrete",
+        "Concrete Wall",
+        "CURB WALL",
+        "Wall: FW",
+        "KERB WALL",
+        "CONCRETE WALL",
+        "HDC",
+        "STG WALL",
+        "SHIELDING WALL"
     ],
     ("Cast In Place Concrete Girders / Beams", "61.09.16", "M3"):     [
         "Structural Framing: M_Concrete-Rectangular Beam"
@@ -419,6 +442,21 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
     ],
     ("Acoustical Tile Ceilings","83.09.22","M2"): [
         "Compound Ceiling",
+    ],
+    ("Doors and Windows - Overall Door Hardware", "83.08.10", "Ea"): [
+        "Windows",
+    ],
+    ("Specialty Systems - Security / CCTV", "81.33.04", "Ea"): [
+        "Security Devices: _WF_Door Devices",
+    ],
+    ("Elevated Slab", "72.03.06", "Ea"): [
+        "Cold Roof",
+    ],
+    ("Bar Screens", "62.18.18", "M2"): [
+        "Bar Screen",
+    ],
+    ("missing info", "missing info", "missing info"): [
+        "SHIELDING WALL-REMOVABLE",
     ],
 }
 
