@@ -77,7 +77,8 @@ MPL_DESC_COLUMN = "MPL_DESCRIPTION"
 
 item_type_to_skip = ["centerline", "lines", "rooms", "pipes:pipetypes", "spaceseparation", 
     "roomseperation", "levels:level", "pipefittings:", "grids:grid", "gridheads", "parking", 
-    "spaces", "modeltext", " northarrow", "levelhead", "loadingvehicle", ".dwg", "siteinfo", "legend", "Clearance", "elumtools"]
+    "spaces", "modeltext", " northarrow", "levelhead", "loadingvehicle", ".dwg", "siteinfo", 
+    "legend", "Clearance", "Clearence", "elumtools", "keepoutzone", "GTP"]
 
 
 # Mapping: Account Description -> List of item identifiers
@@ -114,8 +115,9 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
     ],
     ("Curtain Wall and Glazed Assemblies Subcontracts", "95.83.08.006.04", "M2"):     [
         "K-Roc",
-        "Curtain Panels:"
-    ], # Moved "curtain wall" below building openings subcontracts to avoid duplication
+        "Curtain Panels:",
+        "Curtain Wall"
+    ],
     ("Permanent Fences and Gates", "55.12.10", "LM"):     [
         "Chainlink Fence"
     ],
@@ -299,9 +301,6 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
     ("Building Openings Subcontracts", "95.83.08", "EA"):     [
         "Curtain Wall Mullions"
     ],
-    ("Curtain Wall and Glazed Assemblies Subcontracts", "95.83.08.006.04", "M2"):     [
-        "Curtain Wall"
-    ],
     ("Building HVAC - Ventilation Unit", "83.23.42", "EA"):     [
         "Mechanical Equipment: Air_Handling_Unit-Vertical-Daikin-FXTQ_TAVJU: 5 Ton_FXTQ60TAVJUA",
         "AHU",
@@ -429,7 +428,9 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
         "CONCRETE WALL",
         "HDC",
         "STG WALL",
-        "SHIELDING WALL"
+        "SHIELDING WALL",
+        "Wall: Cast in Place",
+        "Wall Opening: ELECTRICAL"
     ],
     ("Cast In Place Concrete Girders / Beams", "61.09.16", "M3"):     [
         "Structural Framing: M_Concrete-Rectangular Beam"
@@ -457,6 +458,9 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
     ],
     ("Furnishings - Lab Casework", "83.12.16", "LM"): [
         "Casework",
+    ],
+    ("Heating, Ventilating, and Air Conditioning (HVAC)", "83.23", "Ea/LM"):[
+        "Duct Accessories:"
     ],
     ("missing info", "missing info", "missing info"): [
         "missing info",

@@ -36,6 +36,8 @@ def compute_account_from_item_type(item_type: str | None) -> List[str]:
     - Normalize the input string by removing all whitespace and lowercasing
     - Check if any pre-normalized keyword appears as a substring within the
       normalized item_type
+    - Keywords are checked longest-first to ensure more specific matches take priority
+      (e.g., "Curtain Wall Mullions" before "Curtain Wall")
     - Keywords are pre-computed at module load time for maximum efficiency
     - On first match, return the account details tuple directly
 
@@ -51,8 +53,14 @@ def compute_account_from_item_type(item_type: str | None) -> List[str]:
     # Normalize once per row instead of once per keyword
     norm_item_type = _normalize_string(item_type)
 
-    # Iterate through pre-normalized keywords (much faster than nested loops)
-    for norm_keyword, account_details in normalized_keyword_lookup.items():
+    # Sort keywords by length (longest first) to prioritize specific matches
+    # This ensures "Curtain Wall Mullions" matches before "Curtain Wall"
+    sorted_keywords = sorted(normalized_keyword_lookup.items(), 
+                            key=lambda x: len(x[0]), 
+                            reverse=True)
+    
+    # Iterate through keywords checking most specific first
+    for norm_keyword, account_details in sorted_keywords:
         if norm_keyword in norm_item_type:
             return account_details
 
