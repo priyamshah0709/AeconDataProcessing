@@ -16,7 +16,7 @@ INPUT_ITEM_SOURCE_FILE = "ItemSourceFile"
 
 # Output column names (columns to write to enriched CSV)
 ACCOUNT_CODE_COLUMN = "ACCOUNT_CODE"
-ACCOUNT_DESCRIPTION_COLUMN = "ACCOUNT_DESCRIPTION"
+ACCOUNT_DESCRIPTION_COLUMN = "ACCOUNT_CODE_DESCRIPTION"
 UOM_COLUMN = "UOM"
 MPL_COLUMN = "MPL"
 MPL_DESC_COLUMN = "MPL_DESCRIPTION"
@@ -77,7 +77,7 @@ MPL_DESC_COLUMN = "MPL_DESCRIPTION"
 
 item_type_to_skip = ["centerline", "lines", "rooms", "pipes:pipetypes", "spaceseparation", 
     "roomseperation", "levels:level", "pipefittings:", "grids:grid", "gridheads", "parking", 
-    "spaces", "modeltext", " northarrow", "levelhead", "loadingvehicle", ".dwg", "siteinfo", "legend"]
+    "spaces", "modeltext", " northarrow", "levelhead", "loadingvehicle", ".dwg", "siteinfo", "legend", "Clearance"]
 
 
 # Mapping: Account Description -> List of item identifiers
@@ -413,6 +413,12 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
     ],
     ("Conduit", "81.03", "LM"):     [
         "Conduits:"
+    ],
+    ("Interior Metal Stud Ceilings and Soffits Framing - All Sizes","83.09.10","M2"): [
+        "grid",
+    ],
+    ("Acoustical Tile Ceilings","83.09.22","M2"): [
+        "Compound Ceiling",
     ],
 }
 

@@ -86,11 +86,11 @@ def enrich_row(row: Dict[str, str]) -> Dict[str, str]:
     mpl_desc_value = mpl_map.get(mpl_value, "")
 
     enriched = dict(row)
+    enriched[MPL_COLUMN] = mpl_value
+    enriched[MPL_DESC_COLUMN] = mpl_desc_value
     enriched[ACCOUNT_CODE_COLUMN] = account_code
     enriched[ACCOUNT_DESCRIPTION_COLUMN] = account_desc
     enriched[UOM_COLUMN] = uom_value
-    enriched[MPL_COLUMN] = mpl_value
-    enriched[MPL_DESC_COLUMN] = mpl_desc_value
     return enriched
 
 
