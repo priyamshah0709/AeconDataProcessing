@@ -12,6 +12,7 @@ from typing import Dict, List
 from constants import (
     INPUT_ITEM_TYPE,
     INPUT_ENTITY_HANDLE,
+    INPUT_ELEMENT_ID_VALUE,
     INPUT_ITEM_SOURCE_FILE,
     ACCOUNT_CODE_COLUMN,
     ACCOUNT_DESCRIPTION_COLUMN,
@@ -158,9 +159,10 @@ def should_skip_row(row: Dict[str, str], fieldnames: List[str]) -> bool:
     OPTIMIZED: Uses pre-normalized skip list for faster filtering.
 
     A row is skipped if:
-    1. The `EntityHandle` column doesn't exist in the CSV
-    2. The `EntityHandle` column is empty or contains only whitespace
-    3. The `ItemType` contains any substring from the skip list
+    1. Neither EntityHandle nor ElementIDValue column exists in the CSV
+    2. Both EntityHandle and ElementIDValue are empty
+    3. Both EntityHandle and ElementIDValue are non-empty (invalid state)
+    4. The ItemType contains any substring from the skip list
 
     Args:
         row: Dictionary containing the CSV row data
@@ -169,13 +171,17 @@ def should_skip_row(row: Dict[str, str], fieldnames: List[str]) -> bool:
     Returns:
         True if the row should be skipped, False otherwise
     """
-    # Check if EntityHandle column exists
-    if INPUT_ENTITY_HANDLE not in fieldnames:
+    # Check if identifier columns exist
+    if INPUT_ENTITY_HANDLE not in fieldnames and INPUT_ELEMENT_ID_VALUE not in fieldnames:
         return True
-
-    # Check if EntityHandle is empty
+    
     entity_handle = row.get(INPUT_ENTITY_HANDLE, "").strip()
-    if entity_handle == "":
+    element_id_value = row.get(INPUT_ELEMENT_ID_VALUE, "").strip()
+    
+    # Check identifier validity (XOR logic)
+    if entity_handle == "" and element_id_value == "":
+        return True
+    if entity_handle != "" and element_id_value != "":
         return True
 
     # Check if ItemType contains any skip substring

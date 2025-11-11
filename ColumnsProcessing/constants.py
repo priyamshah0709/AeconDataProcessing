@@ -11,7 +11,8 @@ from typing import Dict, List, Tuple
 
 # Input column names (columns to read from source CSV)
 INPUT_ITEM_TYPE = "ItemType"
-INPUT_ENTITY_HANDLE = "ElementID"
+INPUT_ENTITY_HANDLE = "EntityHandleValue"
+INPUT_ELEMENT_ID_VALUE = "ElementIDValue"
 INPUT_ITEM_SOURCE_FILE = "ItemSourceFile"
 
 # Output column names (columns to write to enriched CSV)
@@ -83,6 +84,25 @@ item_type_to_skip = ["centerline", "lines", "rooms", "pipes:pipetypes", "spacese
 
 # Mapping: Account Description -> List of item identifiers
 description_to_items: Dict[Tuple[str, str, str], List[str]] = {
+    ("Module Assembly - Misc Steel Fab", "62.03.04.024", "Ton"): [
+        "ACPPSTRUCTUREBEAM"
+    ],
+    ("Ladders", "62.18.06", "LM"): [
+        "ACPPSTRUCTURELADDER",
+        "Ladder"
+    ],
+    ("Gratings", "62.18.14", "M2"): [
+        "ACPPSTRUCTUREGRATING"
+    ],
+    ("Stairs", "62.18.04", "LM"): [
+        "ACPPSTRUCTURESTAIR"
+    ],
+    ("Pedestal", "61.06.12", "M3"): [
+        "ACPPSTRUCTUREANCHORAGE"
+    ],
+    ("Module Assembly - Platework", "62.03.04.020", "Ton"): [
+        "ACPPSTRUCTUREPLATE"
+    ],
     ("Building HVAC - Grills and Diffuser Installation", "83.23.22", "EA"):     [
         "Exhaust Fan",
         "Daikin",
@@ -145,9 +165,9 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
     ],
     ("Railings", "62.18.12", "LM"):     [
         "Railing",
+        "ACPPSTRUCTURERAILING",
         "Handrail",
-        "Top Rail",
-        "Handrail"
+        "Top Rail"
     ],
     ("Anchor Bolts", "61.30.02", "Ea"):     [
         "Anchor",
@@ -180,11 +200,6 @@ description_to_items: Dict[Tuple[str, str, str], List[str]] = {
     ],
     ("Specialty Walls", "61.06.06", "Ea"):     [
         "Generic Models: Corbel: Corbel"
-    ],
-    ("Module Assembly", "62.03.04", "LM"):     [
-        "ACPPSTRUCTURELADDER",
-        "ACPPSTRUCTURERAILING",
-        "Ladder"
     ],
     ("Module Assembly", "62.03.04", "Ea"):     [
         "Generic Models: BASEPLATE",
