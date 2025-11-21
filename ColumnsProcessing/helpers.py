@@ -112,7 +112,7 @@ def ensure_fieldnames_with_appends(original_fieldnames: List[str]) -> List[str]:
         Complete list of fieldnames including enrichment columns
     """
     fieldnames = list(original_fieldnames)
-    for c in [ACCOUNT_CODE_COLUMN, ACCOUNT_DESCRIPTION_COLUMN, UOM_COLUMN, MPL_COLUMN, MPL_DESC_COLUMN]:
+    for c in [MPL_COLUMN, MPL_DESC_COLUMN,ACCOUNT_CODE_COLUMN, ACCOUNT_DESCRIPTION_COLUMN, UOM_COLUMN]:
         if c not in fieldnames:
             fieldnames.append(c)
     return fieldnames

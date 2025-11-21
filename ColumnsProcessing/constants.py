@@ -79,7 +79,9 @@ MPL_DESC_COLUMN = "MPL_DESCRIPTION"
 item_type_to_skip = ["centerline", "lines", "rooms", "pipes:pipetypes", "spaceseparation", 
     "roomseperation", "levels:level", "pipefittings:", "grids:grid", "gridheads", "parking", 
     "spaces", "modeltext", " northarrow", "levelhead", "loadingvehicle", ".dwg", "siteinfo", 
-    "legend", "Clearance", "Clearence", "elumtools", "keepoutzone", "GTP"]
+    "legend", "Clearance", "Clearence", "elumtools", "keepoutzone", "GTP","EXTRUDEDSURFACE",
+    "ACPPDB3DISOSPHERESYMBOL","ACPPDB3DISOARROWSYMBOL","SURFACE","ACPPDB3DISOSTARTPOINTSYMBOL",
+    "Feature Line","REVOLVEDSURFACE","Tin Surface","SWEPTSURFACE"]
 
 
 # Mapping: Account Description -> List of item identifiers
