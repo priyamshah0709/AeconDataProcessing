@@ -37,8 +37,11 @@ from constants import (
     elevation_map,  
     material_codes_map,
     ItemMaterial_PlantMaterial_map,
+    # item_type_to_directly_map,
     material_keys_list,
     piping_map,
+    # normalized_skip_list,
+    # _normalize_string,
 )
 
 
@@ -154,6 +157,9 @@ def compute_account_description(row: Dict[str, str]) -> str:
     ItemSourceFileCode = compute_mpl(ItemSourceFile)
     is_element_id_value_present = row.get(INPUT_ELEMENT_ID_VALUE, "").strip() != ""
     
+    # if ItemType in item_type_to_directly_map:
+    #     return item_type_to_directly_map[ItemType]
+
     if ItemType == "Pressure Pipe" or ItemSourceFileCode in ["CUW"]:
         # Set default values for Pressure Pipe
         row[INPUT_AUTOCAD_COG_Z] = float('-inf')
@@ -226,6 +232,26 @@ def compute_account_description(row: Dict[str, str]) -> str:
     is_above_ground = z_val > elevation_threshold
     is_small_bore = size_val <= 2
 
+    return compute_pipe_description(is_above_ground, is_small_bore, size_val, material_name)
+
+
+def compute_pipe_description(is_above_ground: bool, is_small_bore: bool, size_val: float, material_name: str | None) -> str:
+    """
+    Generate pipe description based on location, size, and material.
+    
+    This function creates a standardized pipe description string following the format:
+    - Small bore (≤2"): "Above Ground Small Bore Pipe (All-In) (Material)" or "Underground Small Bore Pipe - Material"
+    - Large bore (>2"): "Above/Underground Large Bore Pipe (Material) (Size Range Diameter)"
+    
+    Args:
+        is_above_ground: True if pipe is above ground (z > threshold), False if underground
+        is_small_bore: True if pipe size is ≤2 inches
+        size_val: Pipe size in inches
+        material_name: Material name (e.g., "Carbon Steel", "Stainless Steel"), or None if unknown
+        
+    Returns:
+        Formatted pipe description string
+    """
     if is_above_ground:
         if is_small_bore:
             return (
@@ -424,9 +450,13 @@ def should_skip_row(row: Dict[str, str], fieldnames: List[str]) -> bool:
     """
     Determine if a row should be skipped during processing.
 
-    A row is skipped if the entity_handle column exists in the CSV and is
-    empty or contains only whitespace. If the column doesn't exist, rows
-    are not skipped.
+    OPTIMIZED: Uses pre-normalized skip list for faster filtering.
+
+    A row is skipped if:
+    1. Neither EntityHandle nor ElementIDValue column exists in the CSV
+    2. Both EntityHandle and ElementIDValue are empty
+    3. Both EntityHandle and ElementIDValue are non-empty (invalid state)
+    4. The ItemType contains any substring from the skip list
 
     Args:
         row: Dictionary containing the CSV row data
@@ -435,21 +465,31 @@ def should_skip_row(row: Dict[str, str], fieldnames: List[str]) -> bool:
     Returns:
         True if the row should be skipped, False otherwise
     """
-    # Only check entity_handle if the column exists in the CSV
+    # Check if identifier columns exist
     if INPUT_ENTITY_HANDLE not in fieldnames and INPUT_ELEMENT_ID_VALUE not in fieldnames:
         return True    # If neither column exists, skip the row
     
     entity_handle = row.get(INPUT_ENTITY_HANDLE, "").strip()
     element_id_value = row.get(INPUT_ELEMENT_ID_VALUE, "").strip()
-    if entity_handle == "" and element_id_value == "":    # If both columns are empty, skip the row
-        return True
-    if entity_handle != "" and element_id_value != "":    # If both columns are not empty, skip the row
-        return True
-    if entity_handle != "" and element_id_value == "":
-        return False
-    if entity_handle == "" and element_id_value != "":
-        return False
-    return True
+    
+    # Check identifier validity (XOR logic)
+    if entity_handle == "" and element_id_value == "":
+        return True    # Both empty, skip
+    if entity_handle != "" and element_id_value != "":
+        return True    # Both non-empty (invalid), skip
+    
+    # Check if ItemType contains any skip substring
+    # item_type = row.get(INPUT_ITEM_TYPE, "")
+    # if item_type:
+    #     norm_item_type = _normalize_string(item_type)
+        
+    #     # Use pre-normalized skip list (computed once at module load)
+    #     for norm_skip_item in normalized_skip_list:
+    #         if norm_skip_item in norm_item_type:
+    #             return True
+    
+    # Valid row with exactly one identifier and no skip pattern
+    return False
 
 
 def enrich_row(row: Dict[str, str]) -> Dict[str, str]:

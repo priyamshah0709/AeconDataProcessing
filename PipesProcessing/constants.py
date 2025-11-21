@@ -14,7 +14,7 @@ INPUT_MAXZ = "Maxz"
 INPUT_AUTOCAD_SIZE = "AutoCADSize"         
 INPUT_ELEMENT_SIZE = "ElementSize"
 INPUT_AUTOCAD_PLANT_MATERIAL = "AutoCADPlantMaterial"
-INPUT_ENTITY_HANDLE = "EntityHandle"
+INPUT_ENTITY_HANDLE = "EntityHandleValue"
 INPUT_ELEMENT_ID_VALUE = "ElementIDValue"
 INPUT_ITEM_TYPE = "ItemType"
 INPUT_CIVIL3D_INFO = "Civil3DInformation:Description"
@@ -35,6 +35,13 @@ DEFAULT_UOM = "LM"
 
 # Threshold values
 GROUND_LEVEL_THRESHOLD = 0.00  # Z-coordinate above this value is considered "above ground" change to float('-inf') for negative infinity
+
+# item_type_to_directly_map: Dict[str, str] = {
+#     "Pressure Pipe": "70.12.02",
+# }
+
+# We need to skip processing row for these item types
+# item_type_to_skip = ["TO_BE_DONE_IN_THE_FUTURE"]
 
 # Data maps
 mpl_map: Dict[str, str] = {
@@ -412,4 +419,38 @@ piping_map: Dict[str, str] = {
     "Underground Large Bore Pipe (Contained Piping) (>24\" Diameter)": "70.15.08.128",
     "Underground Large Bore Pipe (Pex Tubing) (2.5\"-6\" Diameter)": "70.15.08.130",
 }
+
+
+# Performance optimization: Pre-normalize skip list for faster row filtering
+# def _normalize_string(s: str) -> str:
+#     """
+#     Normalize a string by removing all whitespace and converting to lowercase.
+    
+#     This normalization is used for substring matching to make comparisons
+#     case-insensitive and whitespace-insensitive.
+    
+#     Args:
+#         s: String to normalize
+        
+#     Returns:
+#         Normalized string (lowercase, no whitespace)
+#     """
+#     return "".join(s.lower().split())
+
+
+# def _build_normalized_skip_list():
+#     """
+#     Pre-normalize the skip list for faster row filtering.
+    
+#     Converts all skip items to normalized form (lowercase, no whitespace)
+#     at module load time for better performance.
+    
+#     Returns:
+#         List of normalized skip strings
+#     """
+#     return [_normalize_string(item) for item in item_type_to_skip if item]
+
+
+# # Pre-computed normalized skip list (computed once at module load)
+# normalized_skip_list = _build_normalized_skip_list()
 
