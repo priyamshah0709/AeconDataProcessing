@@ -30,6 +30,8 @@ from constants import (
     ACCOUNT_CODE_COLUMN,
     ACCOUNT_CODE_DESC_COLUMN,
     UOM_COLUMN,
+    CLEAN_SIZE,
+    CLEAN_MATERIAL,
     DEFAULT_UOM,
     GROUND_LEVEL_THRESHOLD,
     mpl_map,
@@ -184,6 +186,9 @@ def compute_account_description(row: Dict[str, str]) -> str:
     
     if material_name is None:
         missing_values.append("Material")
+        row[CLEAN_MATERIAL] = "N/A"
+    else:
+        row[CLEAN_MATERIAL] = material_name
     
     # Step 2: Check size (try AutoCADSize, then fallback to ElementSize)
     size_val = None
@@ -199,6 +204,15 @@ def compute_account_description(row: Dict[str, str]) -> str:
     if size_val is None:
         # Neither AutoCADSize nor ElementSize yielded a valid size
         missing_values.append("Size")
+        row[CLEAN_SIZE] = "N/A"
+    else:
+        # Populate clean size in inches with a trailing quote, e.g., 2"
+        # Prefer integer formatting where applicable, otherwise a concise decimal
+        if abs(size_val - round(size_val)) < 1e-9:
+            row[CLEAN_SIZE] = f"{int(round(size_val))}\""
+        else:
+            # Keep concise representation (e.g., 2.5 instead of 2.5000)
+            row[CLEAN_SIZE] = f"{size_val:g}\""
     
     # Step 3: Check COG_Z
 
@@ -491,6 +505,16 @@ def should_skip_row(row: Dict[str, str], fieldnames: List[str]) -> bool:
     # Valid row with exactly one identifier and no skip pattern
     return False
 
+def should_duplicate_row(row: Dict[str, str]) -> bool:
+    """
+    Determine if a row should be duplicated.
+
+    A row should be duplicated if the ACCOUNT_CODE column has a non-empty value.
+    """
+    account_code = row.get(ACCOUNT_CODE_COLUMN, "")
+    if str(account_code).strip() == "":
+        return False
+    return True
 
 def enrich_row(row: Dict[str, str]) -> Dict[str, str]:
     """
@@ -534,7 +558,7 @@ def ensure_fieldnames_with_appends(original_fieldnames: List[str]) -> List[str]:
         Complete list of fieldnames including enrichment columns
     """
     fieldnames = list(original_fieldnames)
-    for c in [MPL_COLUMN, MPL_DESC_COLUMN, ACCOUNT_CODE_COLUMN, ACCOUNT_CODE_DESC_COLUMN, UOM_COLUMN]:
+    for c in [MPL_COLUMN, MPL_DESC_COLUMN, ACCOUNT_CODE_COLUMN, ACCOUNT_CODE_DESC_COLUMN, UOM_COLUMN, CLEAN_SIZE, CLEAN_MATERIAL]:
         if c not in fieldnames:
             fieldnames.append(c)
     return fieldnames

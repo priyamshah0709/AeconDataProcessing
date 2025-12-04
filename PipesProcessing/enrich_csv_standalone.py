@@ -14,6 +14,8 @@ from helpers import (
     ensure_fieldnames_with_appends,
     compute_output_path,
     should_skip_row,
+    should_duplicate_row,
+    ACCOUNT_CODE_COLUMN,
 )
 
 
@@ -41,9 +43,14 @@ def enrich_csv(input_csv_path: str, output_csv_path: str) -> None:
             for row in reader:
                 if should_skip_row(row, reader.fieldnames):
                     continue
+
+                # Temporary code to copy exisiting rows with ACCOUNT_CODE
+                if should_duplicate_row(row):
+                    writer.writerow(row)
+                    continue
+
                 enriched = enrich_row(row)
                 writer.writerow(enriched)
-
 
 def main() -> None:
     """
