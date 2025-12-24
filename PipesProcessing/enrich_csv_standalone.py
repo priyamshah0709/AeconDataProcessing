@@ -49,13 +49,58 @@ def detect_file_encoding(file_path: str) -> str:
     return 'utf-8'
 
 
+def detect_csv_delimiter(file_path: str, encoding: str) -> str:
+    """
+    Detect the delimiter used in a CSV file by analyzing the header row.
+    
+    Determines the delimiter by counting occurrences of common delimiters
+    in the first row (column names). The delimiter with the most occurrences
+    is selected.
+    
+    Args:
+        file_path: Path to the CSV file
+        encoding: Encoding to use when reading the file
+        
+    Returns:
+        The detected delimiter character (e.g., ',', ';', '\t', '|')
+    """
+    try:
+        with open(file_path, 'r', encoding=encoding, newline='') as f:
+            # Read only the first line (header with column names)
+            header = f.readline()
+            
+            if not header:
+                return ','
+            
+            # Common delimiters to test, in order of preference
+            potential_delimiters = [';', ',', '\t', '|']
+            
+            # Count occurrences of each delimiter in the header row
+            delimiter_counts = {}
+            for delim in potential_delimiters:
+                count = header.count(delim)
+                if count > 0:
+                    delimiter_counts[delim] = count
+            
+            # If no delimiters found, default to comma
+            if not delimiter_counts:
+                return ','
+            
+            # Return the delimiter with the highest count
+            return max(delimiter_counts, key=delimiter_counts.get)
+            
+    except Exception:
+        # If detection fails, default to comma
+        return ','
+
+
 def enrich_csv(input_csv_path: str, output_csv_path: str) -> None:
     """
     Process and enrich a CSV file with additional computed columns.
 
-    Reads the input CSV with auto-detected encoding, enriches each row with 
-    MPL, account codes, and UOM, then writes the enriched data to an 
-    Excel-compatible output CSV with UTF-8-sig encoding.
+    Reads the input CSV with auto-detected encoding and delimiter, enriches 
+    each row with MPL, account codes, and UOM, then writes the enriched data 
+    to an Excel-compatible output CSV with UTF-8-sig encoding.
 
     Args:
         input_csv_path: Path to the input CSV file
@@ -65,16 +110,21 @@ def enrich_csv(input_csv_path: str, output_csv_path: str) -> None:
     detected_encoding = detect_file_encoding(input_csv_path)
     print(f"Detected input encoding: {detected_encoding}")
     
+    # Detect the delimiter (comma, semicolon, tab, etc.)
+    detected_delimiter = detect_csv_delimiter(input_csv_path, detected_encoding)
+    delimiter_name = {',' : 'comma', ';': 'semicolon', '\t': 'tab'}.get(detected_delimiter, repr(detected_delimiter))
+    print(f"Detected input delimiter: {delimiter_name} ({repr(detected_delimiter)})")
+    
     with open(input_csv_path, "r", encoding=detected_encoding, newline="") as infile:
-        reader = csv.DictReader(infile)
+        reader = csv.DictReader(infile, delimiter=detected_delimiter)
         if reader.fieldnames is None:
             raise ValueError("Input CSV has no header row")
         fieldnames = ensure_fieldnames_with_appends(reader.fieldnames)
 
-        # Write with UTF-8-sig (BOM) so Excel preserves special characters like Ø, ñ, etc.
+        # Write with UTF-8-sig (BOM) and comma delimiter for maximum Excel compatibility
         # This ensures the output can be opened directly in Excel without format conversion
         with open(output_csv_path, "w", encoding="utf-8-sig", newline="") as outfile:
-            writer = csv.DictWriter(outfile, fieldnames=fieldnames, extrasaction="ignore")
+            writer = csv.DictWriter(outfile, fieldnames=fieldnames, delimiter=',', extrasaction="ignore")
             writer.writeheader()
             for row in reader:
                 if should_skip_row(row, reader.fieldnames):
