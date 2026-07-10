@@ -16,6 +16,7 @@ from constants import (
     INPUT_MAXZ,
     INPUT_AUTOCAD_SIZE,
     INPUT_ELEMENT_SIZE,
+    INPUT_AUTOCAD_TAG,
     INPUT_AUTOCAD_PLANT_MATERIAL,
     INPUT_ENTITY_HANDLE,
     INPUT_ELEMENT_ID_VALUE,
@@ -49,20 +50,26 @@ from constants import (
 
 def compute_mpl(item_source_file: str) -> str:
     """
-    Extract MPL code from ItemSourceFile.
+    Extract MPL based on token count before file extension.
 
-    Args:
-        item_source_file: The source file string to parse
-
-    Returns:
-        The extracted MPL code or empty string if not found
+    Rules:
+    - 7 tokens → return 3rd token
+    - 6 tokens → return 2nd token
     """
     if not item_source_file:
         return ""
-    parts = item_source_file.split("-")
-    if len(parts) < 3:
-        return ""
-    return parts[2].strip()
+
+    # Remove extension first (critical — otherwise last token is wrong)
+    filename = item_source_file.split(".")[0]
+
+    parts = [p.strip() for p in filename.split("-") if p.strip()]
+
+    if len(parts) == 7:
+        return parts[2]  # 3rd token
+    elif len(parts) == 6:
+        return parts[1]  # 2nd token
+
+    return ""
 
 
 def compute_pipe_size_range(size: float | None) -> str | None:
@@ -161,7 +168,8 @@ def compute_account_description(row: Dict[str, str]) -> str:
     
     # if ItemType in item_type_to_directly_map:
     #     return item_type_to_directly_map[ItemType]
-
+    
+    temp_cog_z = row.get(INPUT_AUTOCAD_COG_Z, "")
     if ItemType == "Pressure Pipe" or ItemSourceFileCode in ["CUW"]:
         # Set default values for Pressure Pipe
         row[INPUT_AUTOCAD_COG_Z] = float('-inf')
@@ -190,7 +198,7 @@ def compute_account_description(row: Dict[str, str]) -> str:
     else:
         row[CLEAN_MATERIAL] = material_name
     
-    # Step 2: Check size (try AutoCADSize, then fallback to ElementSize)
+    # Step 2: Check size (try AutoCADSize, if not fallback to ElementSize, othrwise fallback to AutoCAD Tag)
     size_val = None
     size_raw = row.get(INPUT_AUTOCAD_SIZE)
     if size_raw not in (None, ""):
@@ -201,6 +209,11 @@ def compute_account_description(row: Dict[str, str]) -> str:
         if element_size_raw not in (None, ""):
             size_val = compute_size_from_element_size(element_size_raw)
 
+    if size_val is None:
+        autocad_tag_raw = row.get(INPUT_AUTOCAD_TAG)
+        if autocad_tag_raw not in (None, ""):
+            size_val = compute_size_from_element_size(autocad_tag_raw)
+            
     if size_val is None:
         # Neither AutoCADSize nor ElementSize yielded a valid size
         missing_values.append("Size")
@@ -230,11 +243,15 @@ def compute_account_description(row: Dict[str, str]) -> str:
             z_val = float(z_raw)
         except Exception:
             missing_values.append("COG_Z")
+            missing_values.append("COG_Z_DUE_TO_INVALID_FORMAT")
+        
+    # Override cog_z value with original after processing for elevation is done. 
+    row[INPUT_AUTOCAD_COG_Z] = temp_cog_z
     
     # If COG_Z or Size are missing, report them all
     if len(missing_values) > 0 and ("COG_Z" in missing_values or "Size" in missing_values):
         return f"Missing values: {', '.join(missing_values)}"
-    
+
     # Used to determine if the pipe is above or underground
     elevation_threshold = GROUND_LEVEL_THRESHOLD
     
@@ -266,6 +283,14 @@ def compute_pipe_description(is_above_ground: bool, is_small_bore: bool, size_va
     Returns:
         Formatted pipe description string
     """
+    """
+    Generate pipe description based on location, size, and material.
+    """
+    # --- NEW: normalize Alloy wording ONLY for large-bore ---
+    if not is_small_bore and material_name:
+        if material_name.strip() == "Other Alloy and Other Pipe (All-In)":
+            material_name = "Other Alloy and Other Pipe"
+            
     if is_above_ground:
         if is_small_bore:
             return (
@@ -483,14 +508,15 @@ def should_skip_row(row: Dict[str, str], fieldnames: List[str]) -> bool:
     if INPUT_ENTITY_HANDLE not in fieldnames and INPUT_ELEMENT_ID_VALUE not in fieldnames:
         return True    # If neither column exists, skip the row
     
-    entity_handle = row.get(INPUT_ENTITY_HANDLE, "").strip()
-    element_id_value = row.get(INPUT_ELEMENT_ID_VALUE, "").strip()
+    # Handle None values from CSV (empty cells can be None)
+    entity_handle = (row.get(INPUT_ENTITY_HANDLE) or "").strip()
+    element_id_value = (row.get(INPUT_ELEMENT_ID_VALUE) or "").strip()
     
     # Check identifier validity (XOR logic)
     if entity_handle == "" and element_id_value == "":
         return True    # Both empty, skip
-    if entity_handle != "" and element_id_value != "":
-        return True    # Both non-empty (invalid), skip
+    # if entity_handle != "" and element_id_value != "":
+    #     return True    # Both non-empty (invalid), skip
     
     # Check if ItemType contains any skip substring
     # item_type = row.get(INPUT_ITEM_TYPE, "")
