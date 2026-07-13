@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Autodesk ApplicationPlugins bundle manifest for Navisworks Manage/Simulate 2026.
+
+  Deployed to (no admin required):
+    %APPDATA%\Autodesk\ApplicationPlugins\NavisworksPropertyBaker.bundle\
+        PackageContents.xml   <- this file
+        Contents\NavisworksPropertyBaker.dll
+
+  Platform tokens: NAVMAN = Navisworks Manage, NAVSIM = Navisworks Simulate.
+  Series: Nw23 = the 2026 release (API v23.0.0.0). Bump to a range (e.g.
+  SeriesMin="Nw23" SeriesMax="Nw24") when you add a build for a newer version.
+-->
+<ApplicationPackage
+    SchemaVersion="1.0"
+    AutodeskProduct="Navisworks"
+    Name="AECON Property Baker"
+    AppVersion="1.0.0"
+    ProductCode="{A5E2C1B4-7D3F-4E6A-9B8C-1F2A3D4E5C6B}"
+    Author="AECON"
+    Description="Bulk-attach enriched CSV properties and bake to NWD">
+  <CompanyDetails Name="AECON" />
+  <Components>
+    <RuntimeRequirements OS="Win64" Platform="NAVMAN|NAVSIM" SeriesMin="Nw23" SeriesMax="Nw23" />
+    <ComponentEntry
+        AppName="NavisworksPropertyBaker"
+        ModuleName="./Contents/NavisworksPropertyBaker.dll"
+        AppType="ManagedPlugin"
+        LoadOnAutodeskProductStartup="True" />
+  </Components>
+</ApplicationPackage>
