@@ -24,7 +24,7 @@ namespace NavisworksPropertyBaker
         {
             "MPL", "SYSTEM_MPL", "MPL_DESCRIPTION",
             "ACCOUNT_CODE", "ACCOUNT_CODE_DESCRIPTION", "UOM",
-            "CLEAN_SIZE", "CLEAN_MATERIAL"
+            "CLEAN_SIZE", "CLEAN_MATERIAL", "CLEAN_WEIGHT", "UNIQUE_ID"
         };
 
         public sealed class LoadResult
@@ -128,12 +128,17 @@ namespace NavisworksPropertyBaker
                     bool hasEh = eh.Length > 0;
                     bool hasEid = eid.Length > 0;
 
-                    // Parity with should_skip_row: keep only rows with exactly one key.
                     if (!hasEh && !hasEid) { _report.CsvRowsSkippedNoKey++; continue; }
-                    if (hasEh && hasEid) { _report.CsvRowsSkippedBothKeys++; continue; }
 
-                    KeyType type = hasEh ? KeyType.EntityHandle : KeyType.ElementId;
-                    string value = ItemKey.NormalizeValue(type, hasEh ? eh : eid);
+                    // ElementID takes precedence. Some enriched exports carry BOTH columns
+                    // on Revit rows, where EntityHandleValue is actually a Revit UniqueId
+                    // (a GUID like "b012f604-...-000754e8"), NOT an AutoCAD hex handle. The
+                    // model has no property matching that GUID, so the real Revit key is
+                    // ElementIDValue. DWG rows carry only the hex handle (no ElementID).
+                    if (hasEh && hasEid) _report.CsvRowsSkippedBothKeys++; // informational; not skipped
+
+                    KeyType type = hasEid ? KeyType.ElementId : KeyType.EntityHandle;
+                    string value = ItemKey.NormalizeValue(type, hasEid ? eid : eh);
                     string srcRaw = srcCol >= 0 && srcCol < fields.Length ? fields[srcCol] : string.Empty;
                     var key = new ItemKey(ItemKey.NormalizeStem(srcRaw), type, value);
 

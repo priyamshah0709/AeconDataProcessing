@@ -39,23 +39,24 @@ namespace NavisworksPropertyBaker
         // add confirmed pairs at the FRONT of the internal lists.
         private static readonly string[][] ElementIdInternal =
         {
-            new[] { "LcRevitData_Element", "LcOaNat64AttributeValue" },
+            // Confirmed from the DNNP federated model diagnostics dump (2026-07-13):
+            // Revit element id, stored as a decimal value.
             new[] { "LcRevitId", "LcOaNat64AttributeValue" },
         };
         private static readonly string[][] ElementIdDisplay =
         {
             new[] { "Element ID", "Value" },
-            new[] { "Element", "Id" },
         };
         private static readonly string[][] EntityHandleInternal =
         {
-            // DWG/DGN exporters vary; display fallback below is the reliable path
-            // until the diagnostics dump confirms the internal pair for this model.
+            // Confirmed from the DNNP federated model diagnostics dump (2026-07-13):
+            // AutoCAD/Civil3D entity handle. Despite the Nat64 internal property name,
+            // the value is the hex handle string (e.g. "10DB4"), matching the CSVs.
+            new[] { "LcOpDwgEntityAttrib", "LcOaNat64AttributeValue" },
         };
         private static readonly string[][] EntityHandleDisplay =
         {
             new[] { "Entity Handle", "Value" },
-            new[] { "Item", "Entity Handle" },
         };
 
         private readonly BakeReport _report;

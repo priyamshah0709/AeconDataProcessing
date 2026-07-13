@@ -63,7 +63,11 @@ namespace NavisworksPropertyBaker
             string stem;
             try { stem = Path.GetFileNameWithoutExtension(fileNameOrPath); }
             catch (ArgumentException) { stem = fileNameOrPath; } // invalid path chars: use raw
-            return string.Intern((stem ?? string.Empty).Trim().ToLowerInvariant());
+            stem = (stem ?? string.Empty).Trim().ToLowerInvariant();
+            // Navisworks appends "_detached" to some federated model node names; the
+            // enriched CSV source file names do not carry it. Strip it so both sides align.
+            if (stem.EndsWith("_detached")) stem = stem.Substring(0, stem.Length - "_detached".Length);
+            return string.Intern(stem);
         }
 
         public static string NormalizeValue(KeyType type, string raw)
@@ -203,7 +207,7 @@ namespace NavisworksPropertyBaker
             return
                 "CSV rows read:        " + CsvRowsTotal + "\r\n" +
                 "  skipped (no key):   " + CsvRowsSkippedNoKey + "\r\n" +
-                "  skipped (2 keys):   " + CsvRowsSkippedBothKeys + "\r\n" +
+                "  both keys->ElemID:  " + CsvRowsSkippedBothKeys + "\r\n" +
                 "  duplicate keys:     " + CsvDuplicateKeys + "\r\n" +
                 "Records loaded:       " + RecordsLoaded + "\r\n" +
                 "Model items visited:  " + ModelItemsVisited +
