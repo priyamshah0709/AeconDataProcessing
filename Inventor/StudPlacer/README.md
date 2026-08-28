@@ -10,7 +10,8 @@ StudPlacer/
 ├── rules/          code tables as CSV — edit these when the drawing revises
 ├── vb/             the engine (3 shared VB files, loaded via AddVbFile)
 ├── ilogic/         the two rules you load into Inventor
-├── tools/          check_rule_tables.py — zero-dependency CSV linter
+├── tools/          set-install-path.ps1 — retarget the rules after a move
+│                   check_rule_tables.py — zero-dependency CSV linter
 ├── tests/          compiles and runs the real engine; compile-checks the rules
 └── samples/        example exclusion file + the full parameter reference
 ```
@@ -36,15 +37,17 @@ asserts this against the actual CSVs.
 
 Full step-by-step in **[INVENTOR_SETUP.md](INVENTOR_SETUP.md)**. In short:
 
-1. Copy this folder to `C:\Aecon\StudPlacer\` (a local drive beats a UNC share).
+1. Copy this folder to `C:\Inventor Project\Inventor\StudPlacer\` (a local drive beats a UNC share).
 2. Create `parts\Stud_19x157.ipt` — Ø19.1 × 157.2 mm, **axis along the part's own
    +Z, weld face at the part origin**. Placement then reduces to "point local +Z
    along the faceplate normal".
-3. If you installed elsewhere, edit the three `AddVbFile` paths in each
-   `.iLogicVb` and the `STUD_RULES_DIR` default. `AddVbFile` runs before the rule
-   compiles, so its argument must be a literal — it cannot read a parameter.
+3. Installed elsewhere? Run `tools\set-install-path.ps1 -Root "<new root>"`
+   (or `python3 tools/set_install_path.py "<new root>"`) rather than editing by
+   hand — the root appears 11 times across the two rule files. `AddVbFile` runs
+   before the rule compiles, so its argument must be a literal; it cannot read a
+   parameter, which is why it is repeated.
 4. **Tools → Options → iLogic Configuration → External Rule Directories** → add
-   `C:\Aecon\StudPlacer\ilogic`.
+   `C:\Inventor Project\Inventor\StudPlacer\ilogic`.
 5. Run **`StudPlacer_SelfTest`** once. It needs no model geometry. Do not use the
    tool until it passes.
 
@@ -132,7 +135,7 @@ Three stages, all green:
 | Stage | What it does |
 |---|---|
 | `tools/check_rule_tables.py` | **141 checks.** Lints the CSVs: required columns, locale-safe numbers, `S_T_DIVISOR == lines + 1` on every row, derived `S_t` matches the value *printed* on G103, floor bands ordered with no gap in `W_sc` coverage, elevation bands contiguous, every constraint the engine looks up exists. Needs nothing but Python — run it after transcribing a new revision. |
-| `tests/ilogic-syntax/` | Compile-checks both `.iLogicVb` files the way iLogic will: strips `AddVbFile`, hoists trailing `Sub`/`Function` declarations, builds against the engine plus stubbed iLogic globals. Catches syntax and bad API member names *before* the file reaches Inventor, where the only feedback is a rule-editor error at run time. |
+| `tests/ilogic-syntax/` | Compile-checks both `.iLogicVb` files the way iLogic will: strips `AddVbFile`, builds against the engine plus stubbed iLogic globals. Also enforces iLogic's **program-format rule** — a rule that declares any `Sub`/`Function` must have an explicit `Sub Main()` first — which a plain VB compiler accepts but the Inventor rule editor rejects. Catches syntax, bad API member names and format errors *before* the file reaches Inventor. |
 | `tests/` | **132 assertions.** Compiles the actual `vb/*.vb` files that Inventor loads and runs them: every table band, end-to-end flat / curved / radial builds, exclusion geometry, density make-up, matrix orthonormality and the mm→cm conversion, idempotent re-runs, the occurrence guard, CSV round-trips, and locale safety under a comma-decimal culture. |
 
 `tests/InventorStubs.vb` exists only so the code can be type-checked off Windows;
@@ -154,6 +157,14 @@ Three bugs that reading the code did not:
    API. They now take `AssemblyDocument`.
 3. **`mE` is the `Me` keyword.** A test-local variable; harmless, but only a
    compiler finds it.
+
+And one that only running it inside Inventor caught, now guarded against:
+
+4. **iLogic requires an explicit `Sub Main()`** as soon as a rule declares any
+   `Sub` or `Function` of its own — it stops auto-wrapping loose statements.
+   A plain VB compiler builds such a rule happily; the Inventor rule editor
+   rejects it with *"Error in rule program format"*. `wrap_rules.py` now asserts
+   the entry point exists and comes first, so stage 2 fails the build instead.
 
 ## Known caveats — read before trusting output
 

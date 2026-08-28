@@ -14,7 +14,7 @@ version‑specific.
 Copy the whole `StudPlacer` folder to a **local** path on the workstation:
 
 ```
-C:\Aecon\StudPlacer\
+C:\Inventor Project\Inventor\StudPlacer\
     rules\      code tables  (CSV)
     vb\         the engine   (3 .vb files)
     ilogic\     the 2 rules you load into Inventor
@@ -22,11 +22,19 @@ C:\Aecon\StudPlacer\
     parts\      you create this in step 2
 ```
 
-**Prefer a local drive over a UNC share.** iLogic's `AddVbFile` resolves paths at
-compile time and a slow or intermittently mapped share turns into a confusing
-"file not found" at rule‑run time. If you must use a share, use a full UNC path
-(`\\server\eng\StudPlacer\vb\StudRules.vb`), not a mapped letter that may not
-exist on every machine.
+**Use a local drive. Not OneDrive, not a mapped share.**
+
+- **OneDrive / SharePoint‑synced folders are the main trap.** Files there can be
+  online‑only placeholders that look present in Explorer but cannot be read by
+  iLogic, and `AddVbFile` resolves at compile time with no useful error. If you
+  must keep a copy in OneDrive, work from a local copy and right‑click the
+  folder → *Always keep on this device* for the synced one.
+- **UNC shares** work but resolve slowly and fail confusingly when the share is
+  unavailable. If you need one, use a full UNC path
+  (`\\server\eng\StudPlacer\vb\StudRules.vb`), never a mapped drive letter that
+  may not exist on the next machine.
+- Spaces in the path are fine — `C:\Inventor Project\Inventor\StudPlacer` is a
+  supported install root.
 
 If the folder arrived as a downloaded `.zip`, **unblock it before extracting** —
 right‑click the zip → Properties → tick *Unblock* → OK. Windows marks files from
@@ -38,7 +46,7 @@ New Part (`.ipt`), millimetres:
 
 1. Sketch on the **XY plane**, circle centred on the **origin**, Ø **19.1 mm**.
 2. Extrude **157.2 mm** in **+Z**.
-3. Save as `C:\Aecon\StudPlacer\parts\Stud_19x157.ipt`.
+3. Save as `C:\Inventor Project\Inventor\StudPlacer\parts\Stud_19x157.ipt`.
 
 Two rules matter and nothing else does:
 
@@ -52,7 +60,7 @@ cover‑plate studs when that scope lands.
 
 ## 3. Point the rules at your install path
 
-Open both files in `ilogic\` in Notepad. If you used `C:\Aecon\StudPlacer`,
+Open both files in `ilogic\` in Notepad. If you used `C:\Inventor Project\Inventor\StudPlacer`,
 change nothing. Otherwise edit **two things**:
 
 - the three `AddVbFile` lines at the top of each file
@@ -61,10 +69,16 @@ change nothing. Otherwise edit **two things**:
 `AddVbFile` is a pre‑compile directive, so its argument has to be a literal
 string — it cannot read a parameter. That's why the path appears twice.
 
+> **If you edit a rule file:** keep the `AddVbFile` lines at the very top, the
+> whole body inside `Sub Main()` … `End Sub`, and the helper `Sub`/`Function`
+> declarations after `End Sub`. iLogic only auto-wraps loose statements while a
+> rule declares no subroutines of its own; the moment it does, an explicit
+> `Sub Main()` becomes mandatory.
+
 ## 4. Register the rules with iLogic
 
 In Inventor: **Tools → Options → iLogic Configuration → External Rule
-Directories** → add `C:\Aecon\StudPlacer\ilogic` → OK.
+Directories** → add `C:\Inventor Project\Inventor\StudPlacer\ilogic` → OK.
 
 Then open the iLogic browser (**Manage → iLogic → iLogic Browser**) and pick the
 **External Rules** tab. Both rules should be listed. If they are not, right‑click
@@ -103,7 +117,7 @@ A minimal flat SCCV wall needs:
 | `STUD_PLATE_LENGTH_MM` | ul | `3600` |
 | `STUD_TERM_START` | Text | `LANDING_PLATE` |
 | `STUD_TERM_END` | Text | `SPLICE` |
-| `STUD_PART_PATH` | Text | `C:\Aecon\StudPlacer\parts\Stud_19x157.ipt` |
+| `STUD_PART_PATH` | Text | `C:\Inventor Project\Inventor\StudPlacer\parts\Stud_19x157.ipt` |
 
 To make a **Text** parameter: Add a user parameter, then change its *Unit Type*
 column to `Text`. For numeric ones, `ul` (unitless) holding plain millimetres or
@@ -140,7 +154,7 @@ Only needed if you edit the engine or the rule tables.
 
 ```powershell
 winget install Microsoft.DotNet.SDK.8
-cd C:\Aecon\StudPlacer
+cd C:\Inventor Project\Inventor\StudPlacer
 tests\run-tests.cmd
 ```
 
@@ -155,6 +169,7 @@ check after transcribing a new drawing revision.
 
 | Symptom | Cause and fix |
 |---|---|
+| `Error in rule program format: The rule must contain: Sub Main() ... End Sub` | The rule lost its `Sub Main()` wrapper. iLogic auto-wraps loose statements ONLY while a rule declares no `Sub`/`Function` of its own; both of these rules declare helpers, so both need an explicit `Sub Main()` with the helpers *after* `End Sub`. Both shipped files already have it — if you see this, the file was edited. `tests/ilogic-syntax/wrap_rules.py` checks for it. |
 | `Error on line 1: file not found` or `AddVbFile` failure | The path in the `AddVbFile` lines does not exist on this machine. Fix step 3. Check the zip was unblocked (step 1). |
 | `Rule table not found: ...global_constraints.csv` | `STUD_RULES_DIR` points somewhere wrong, or the `rules\` folder was not copied. |
 | `Parameter STUD_COMPONENT is required` | The parameter is missing or misspelled, or it was added to a **part** rather than the assembly. |

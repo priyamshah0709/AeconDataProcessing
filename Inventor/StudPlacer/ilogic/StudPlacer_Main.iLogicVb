@@ -2,149 +2,189 @@
 ' StudPlacer_Main  --  iLogic rule.  Place BWRX-300 DP-SC shear studs on the
 ' active module assembly from the 008N9536 G103 code tables.
 '
-' INSTALL
-'   1. Copy the StudPlacer folder to a shared location, e.g.
-'        C:\Aecon\StudPlacer\
-'      so that C:\Aecon\StudPlacer\vb\  and  C:\Aecon\StudPlacer\rules\  exist.
-'   2. If you install somewhere else, edit the three AddVbFile paths below AND
-'      the STUD_RULES_DIR default further down.  Those are the only two places
-'      the install path appears.
-'   3. Tools > Options > iLogic Configuration > External Rule Directories:
-'      add C:\Aecon\StudPlacer\ilogic so this rule can be shared between docs.
-'
-' The AddVbFile paths must be string literals -- the directive runs before the
-' rule compiles, so it cannot read a parameter.
+' Setup, parameters and troubleshooting: INVENTOR_SETUP.md
 '==============================================================================
-AddVbFile "C:\Aecon\StudPlacer\vb\StudRules.vb"
-AddVbFile "C:\Aecon\StudPlacer\vb\StudArray.vb"
-AddVbFile "C:\Aecon\StudPlacer\vb\StudPlacer.vb"
+'--- INSTALL PATH -------------------------------------------------------------
+' Every absolute path in this rule points at one install root:
+'
+'     C:\Inventor Project\Inventor\StudPlacer
+'
+' Do NOT edit these by hand -- the same root appears in both rule files and it
+' is easy to update one and miss the other. Run instead:
+'
+'     tools\set-install-path.ps1 -Root "<new root>"      (Windows)
+'     python3 tools/set_install_path.py "<new root>"      (any OS)
+'
+' AddVbFile is a pre-compile directive: its argument must be a literal string,
+' so it cannot read a parameter or a variable. That is why the root is repeated
+' rather than derived.
+AddVbFile "C:\Inventor Project\Inventor\StudPlacer\vb\StudRules.vb"
+AddVbFile "C:\Inventor Project\Inventor\StudPlacer\vb\StudArray.vb"
+AddVbFile "C:\Inventor Project\Inventor\StudPlacer\vb\StudPlacer.vb"
+'------------------------------------------------------------------------------
 
-Dim inv As Inventor.Application = ThisApplication
-Dim doc As Inventor.Document = ThisDoc.Document
+' iLogic requires an explicit Sub Main() as soon as a rule declares any Sub or
+' Function of its own -- without it the rule editor reports
+'   "Error in rule program format: The rule must contain: Sub Main() ... End Sub"
+' The helper declarations below sit OUTSIDE Sub Main, at rule scope.
+Sub Main()
+    Dim inv As Inventor.Application = ThisApplication
+    Dim doc As Inventor.Document = ThisDoc.Document
 
-If doc.DocumentType <> DocumentTypeEnum.kAssemblyDocumentObject Then
-    MsgBox("StudPlacer must be run from the module ASSEMBLY, not a part.", vbExclamation, "StudPlacer")
-    Return
-End If
-Dim asmDoc As AssemblyDocument = CType(doc, AssemblyDocument)
+    If doc.DocumentType <> DocumentTypeEnum.kAssemblyDocumentObject Then
+        MsgBox("StudPlacer must be run from the module ASSEMBLY, not a part.", vbExclamation, "StudPlacer")
+        Return
+    End If
+    Dim asmDoc As AssemblyDocument = CType(doc, AssemblyDocument)
 
-'--- configuration ------------------------------------------------------------
-Dim rulesDir As String = ParamText(asmDoc, "STUD_RULES_DIR", "C:\Aecon\StudPlacer\rules")
-Dim studPart As String = ParamText(asmDoc, "STUD_PART_PATH", "C:\Aecon\StudPlacer\parts\Stud_19x157.ipt")
-Dim outDir As String = ParamText(asmDoc, "STUD_OUTPUT_DIR", ThisDoc.Path)
-Dim exclPath As String = ParamText(asmDoc, "STUD_EXCLUSIONS_CSV", "")
-Dim placeGeom As Boolean = (ParamText(asmDoc, "STUD_PLACE_GEOMETRY", "TRUE").ToUpper() <> "FALSE")
-Dim maxOcc As Integer = CInt(ParamNum(asmDoc, "STUD_MAX_OCCURRENCES", 4000))
+    '--- configuration ------------------------------------------------------------
+    Dim rulesDir As String = ParamText(asmDoc, "STUD_RULES_DIR", "C:\Inventor Project\Inventor\StudPlacer\rules")
+    Dim studPart As String = ParamText(asmDoc, "STUD_PART_PATH", "C:\Inventor Project\Inventor\StudPlacer\parts\Stud_19x157.ipt")
+    Dim outDir As String = ParamText(asmDoc, "STUD_OUTPUT_DIR", ThisDoc.Path)
+    Dim exclPath As String = ParamText(asmDoc, "STUD_EXCLUSIONS_CSV", "")
+    Dim placeGeom As Boolean = (ParamText(asmDoc, "STUD_PLACE_GEOMETRY", "TRUE").ToUpper() <> "FALSE")
+    Dim maxOcc As Integer = CInt(ParamNum(asmDoc, "STUD_MAX_OCCURRENCES", 4000))
 
-'--- module description -------------------------------------------------------
-Dim m As ModuleInput = New ModuleInput()
-m.ModuleId = ParamText(asmDoc, "STUD_MODULE_ID", ThisDoc.FileName(False))
-m.Component = ParamText(asmDoc, "STUD_COMPONENT", "")
-m.Geometry = ParamText(asmDoc, "STUD_GEOMETRY", "FLAT").ToUpper()
-m.ElevM = ParamNum(asmDoc, "STUD_ELEV_M", 0.0)
+    '--- preflight ----------------------------------------------------------------
+    ' Check every file the run depends on up front, so a bad install path names
+    ' the missing item instead of surfacing as a vaguer error further in.
+    Dim missing As New System.Text.StringBuilder()
+    If Not System.IO.Directory.Exists(rulesDir) Then
+        missing.AppendLine("  rules folder:  " & rulesDir)
+    Else
+        For Each needed As String In New String() {"global_constraints.csv", "table_1_6_walls.csv", "table_1_7_floors.csv"}
+            If Not System.IO.File.Exists(System.IO.Path.Combine(rulesDir, needed)) Then
+                missing.AppendLine("  rule table:    " & System.IO.Path.Combine(rulesDir, needed))
+            End If
+        Next
+    End If
+    If placeGeom AndAlso Not System.IO.File.Exists(studPart) Then
+        missing.AppendLine("  stud part:     " & studPart)
+    End If
+    If exclPath <> "" AndAlso Not System.IO.File.Exists(exclPath) Then
+        missing.AppendLine("  exclusions:    " & exclPath)
+    End If
+    If missing.Length > 0 Then
+        MsgBox("StudPlacer cannot find:" & vbCrLf & vbCrLf & missing.ToString() & vbCrLf &
+               "Check STUD_RULES_DIR / STUD_PART_PATH on this assembly, and the install" & vbCrLf &
+               "path at the top of this rule." & vbCrLf & vbCrLf &
+               "If the install lives in OneDrive, right-click the StudPlacer folder in" & vbCrLf &
+               "File Explorer and choose 'Always keep on this device' -- online-only" & vbCrLf &
+               "placeholder files are not readable by iLogic.",
+               vbCritical, "StudPlacer - install path")
+        Return
+    End If
 
-m.WscMm = ParamMm(asmDoc, "STUD_WSC_MM", 0.0)
-m.PlateWidthMm = ParamMm(asmDoc, "STUD_PLATE_WIDTH_MM", 0.0)
-m.PlateLengthMm = ParamMm(asmDoc, "STUD_PLATE_LENGTH_MM", 0.0)
-m.DatumOffsetMm = ParamMm(asmDoc, "STUD_DATUM_OFFSET_MM", 0.0)
+    '--- module description -------------------------------------------------------
+    Dim m As ModuleInput = New ModuleInput()
+    m.ModuleId = ParamText(asmDoc, "STUD_MODULE_ID", ThisDoc.FileName(False))
+    m.Component = ParamText(asmDoc, "STUD_COMPONENT", "")
+    m.Geometry = ParamText(asmDoc, "STUD_GEOMETRY", "FLAT").ToUpper()
+    m.ElevM = ParamNum(asmDoc, "STUD_ELEV_M", 0.0)
 
-m.RadiusMm = ParamMm(asmDoc, "STUD_RADIUS_MM", 0.0)
-m.SpanDeg = ParamDeg(asmDoc, "STUD_SPAN_DEG", 0.0)
-m.DatumDeg = ParamDeg(asmDoc, "STUD_DATUM_DEG", 0.0)
-m.DiaphPitchDeg = ParamDeg(asmDoc, "STUD_DIAPH_PITCH_DEG", 0.0)
+    m.WscMm = ParamMm(asmDoc, "STUD_WSC_MM", 0.0)
+    m.PlateWidthMm = ParamMm(asmDoc, "STUD_PLATE_WIDTH_MM", 0.0)
+    m.PlateLengthMm = ParamMm(asmDoc, "STUD_PLATE_LENGTH_MM", 0.0)
+    m.DatumOffsetMm = ParamMm(asmDoc, "STUD_DATUM_OFFSET_MM", 0.0)
 
-m.RInnerMm = ParamMm(asmDoc, "STUD_R_INNER_MM", 0.0)
-m.ROuterMm = ParamMm(asmDoc, "STUD_R_OUTER_MM", 0.0)
+    m.RadiusMm = ParamMm(asmDoc, "STUD_RADIUS_MM", 0.0)
+    m.SpanDeg = ParamDeg(asmDoc, "STUD_SPAN_DEG", 0.0)
+    m.DatumDeg = ParamDeg(asmDoc, "STUD_DATUM_DEG", 0.0)
+    m.DiaphPitchDeg = ParamDeg(asmDoc, "STUD_DIAPH_PITCH_DEG", 0.0)
 
-m.DatumAlign = ParamText(asmDoc, "STUD_DATUM_ALIGN", "DIAPHRAGM").ToUpper()
-m.TermStart = ParamText(asmDoc, "STUD_TERM_START", "SPLICE").ToUpper()
-m.TermEnd = ParamText(asmDoc, "STUD_TERM_END", "SPLICE").ToUpper()
-m.SpliceIdStart = ParamText(asmDoc, "STUD_SPLICE_ID_START", "").ToUpper()
-m.SpliceIdEnd = ParamText(asmDoc, "STUD_SPLICE_ID_END", "").ToUpper()
-m.TransverseMode = ParamText(asmDoc, "STUD_TRANSVERSE_MODE", "EVEN").ToUpper()
-m.StudDirSign = ParamNum(asmDoc, "STUD_DIR_SIGN", 1.0)
-m.FaceOffsetMm = ParamMm(asmDoc, "STUD_FACE_OFFSET_MM", 0.0)
-m.DensityMakeup = (ParamText(asmDoc, "STUD_DENSITY_MAKEUP", "TRUE").ToUpper() <> "FALSE")
+    m.RInnerMm = ParamMm(asmDoc, "STUD_R_INNER_MM", 0.0)
+    m.ROuterMm = ParamMm(asmDoc, "STUD_R_OUTER_MM", 0.0)
 
-If m.Component = "" Then
-    MsgBox("Parameter STUD_COMPONENT is required." & vbCrLf & vbCrLf &
-           "Walls:  SCCV_WALL | RB_OUTER_WALL | RPV_PEDESTAL_WALL" & vbCrLf &
-           "Floors: INNER_BASEMAT | OUTER_BASEMAT | INTERIOR_FLOOR",
-           vbExclamation, "StudPlacer")
-    Return
-End If
+    m.DatumAlign = ParamText(asmDoc, "STUD_DATUM_ALIGN", "DIAPHRAGM").ToUpper()
+    m.TermStart = ParamText(asmDoc, "STUD_TERM_START", "SPLICE").ToUpper()
+    m.TermEnd = ParamText(asmDoc, "STUD_TERM_END", "SPLICE").ToUpper()
+    m.SpliceIdStart = ParamText(asmDoc, "STUD_SPLICE_ID_START", "").ToUpper()
+    m.SpliceIdEnd = ParamText(asmDoc, "STUD_SPLICE_ID_END", "").ToUpper()
+    m.TransverseMode = ParamText(asmDoc, "STUD_TRANSVERSE_MODE", "EVEN").ToUpper()
+    m.StudDirSign = ParamNum(asmDoc, "STUD_DIR_SIGN", 1.0)
+    m.FaceOffsetMm = ParamMm(asmDoc, "STUD_FACE_OFFSET_MM", 0.0)
+    m.DensityMakeup = (ParamText(asmDoc, "STUD_DENSITY_MAKEUP", "TRUE").ToUpper() <> "FALSE")
 
-'--- run ----------------------------------------------------------------------
-Dim tables As RuleTables
-Dim result As StudArrayResult
-Try
-    tables = RuleTables.Load(rulesDir)
-    Dim zones As List(Of ExclusionZone) = StudPlacer.LoadExclusions(exclPath)
-    Dim builder As StudArrayBuilder = New StudArrayBuilder(tables, m)
-    result = builder.Build(zones)
-Catch ex As Exception
-    MsgBox("StudPlacer failed while resolving the code rules:" & vbCrLf & vbCrLf & ex.Message,
-           vbCritical, "StudPlacer")
-    Return
-End Try
+    If m.Component = "" Then
+        MsgBox("Parameter STUD_COMPONENT is required." & vbCrLf & vbCrLf &
+               "Walls:  SCCV_WALL | RB_OUTER_WALL | RPV_PEDESTAL_WALL" & vbCrLf &
+               "Floors: INNER_BASEMAT | OUTER_BASEMAT | INTERIOR_FLOOR",
+               vbExclamation, "StudPlacer")
+        Return
+    End If
 
-'--- export -------------------------------------------------------------------
-If Not System.IO.Directory.Exists(outDir) Then System.IO.Directory.CreateDirectory(outDir)
-Dim schedPath As String = System.IO.Path.Combine(outDir, m.ModuleId & "_studs.csv")
-Dim compatPath As String = System.IO.Path.Combine(outDir, m.ModuleId & "_studly.csv")
-StudPlacer.ExportSchedule(schedPath, m, result, "008N9536 Rev 11 / rules dir " & rulesDir)
-StudPlacer.ExportStudlyCompat(compatPath, m, result,
-                              ParamText(asmDoc, "STUD_PART_NUMBER", m.ModuleId),
-                              ParamText(asmDoc, "STUD_PART_DESCRIPTION", m.Component))
-
-'--- place --------------------------------------------------------------------
-Dim placeMsg As String = "Geometry placement disabled (STUD_PLACE_GEOMETRY = False)."
-Dim placedCount As Integer = 0
-If placeGeom AndAlso result.Points.Count > 0 Then
+    '--- run ----------------------------------------------------------------------
+    Dim tables As RuleTables
+    Dim result As StudArrayResult
     Try
-        placedCount = StudPlacer.Place(inv, asmDoc, studPart, result.Points, maxOcc, placeMsg)
+        tables = RuleTables.Load(rulesDir)
+        Dim zones As List(Of ExclusionZone) = StudPlacer.LoadExclusions(exclPath)
+        Dim builder As StudArrayBuilder = New StudArrayBuilder(tables, m)
+        result = builder.Build(zones)
     Catch ex As Exception
-        placeMsg = "Placement failed: " & ex.Message
+        MsgBox("StudPlacer failed while resolving the code rules:" & vbCrLf & vbCrLf & ex.Message,
+               vbCritical, "StudPlacer")
+        Return
     End Try
-ElseIf result.Points.Count = 0 Then
-    placeMsg = "No studs generated."
-End If
 
-'--- report -------------------------------------------------------------------
-Dim sb As New System.Text.StringBuilder()
-sb.AppendLine("Module:    " & m.ModuleId)
-sb.AppendLine("Component: " & m.Component & "   Geometry: " & m.Geometry)
-If result.Spec IsNot Nothing Then
-    sb.AppendLine("Rule:      " & result.Spec.Source)
-    sb.AppendLine("Stud:      " & result.Spec.StudDiaMm.ToString("0.#") & " mm dia x " &
-                  result.Spec.StudLenMm.ToString("0.#") & " mm, " & result.Spec.StudMaterial)
-    sb.AppendLine("Array:     " & result.Spec.LinesPerCavity & " line(s) per cavity, S_t = W_sc/" &
-                  result.Spec.StDivisor & ", S_l max = " & result.Spec.SlMaxMm.ToString("0.#") & " mm")
-End If
-sb.AppendLine()
-sb.AppendLine("Studs generated: " & result.Points.Count)
-sb.AppendLine("Excluded by clearance: " & result.Excluded)
-sb.AppendLine("Added by density make-up: " & result.MadeUp)
-sb.AppendLine(placeMsg)
-sb.AppendLine()
-sb.AppendLine("Schedule: " & schedPath)
+    '--- export -------------------------------------------------------------------
+    If Not System.IO.Directory.Exists(outDir) Then System.IO.Directory.CreateDirectory(outDir)
+    Dim schedPath As String = System.IO.Path.Combine(outDir, m.ModuleId & "_studs.csv")
+    Dim compatPath As String = System.IO.Path.Combine(outDir, m.ModuleId & "_studly.csv")
+    StudPlacer.ExportSchedule(schedPath, m, result, "008N9536 Rev 11 / rules dir " & rulesDir)
+    StudPlacer.ExportStudlyCompat(compatPath, m, result,
+                                  ParamText(asmDoc, "STUD_PART_NUMBER", m.ModuleId),
+                                  ParamText(asmDoc, "STUD_PART_DESCRIPTION", m.Component))
 
-If result.Violations.Count > 0 Then
+    '--- place --------------------------------------------------------------------
+    Dim placeMsg As String = "Geometry placement disabled (STUD_PLACE_GEOMETRY = False)."
+    Dim placedCount As Integer = 0
+    If placeGeom AndAlso result.Points.Count > 0 Then
+        Try
+            placedCount = StudPlacer.Place(inv, asmDoc, studPart, result.Points, maxOcc, placeMsg)
+        Catch ex As Exception
+            placeMsg = "Placement failed: " & ex.Message
+        End Try
+    ElseIf result.Points.Count = 0 Then
+        placeMsg = "No studs generated."
+    End If
+
+    '--- report -------------------------------------------------------------------
+    Dim sb As New System.Text.StringBuilder()
+    sb.AppendLine("Module:    " & m.ModuleId)
+    sb.AppendLine("Component: " & m.Component & "   Geometry: " & m.Geometry)
+    If result.Spec IsNot Nothing Then
+        sb.AppendLine("Rule:      " & result.Spec.Source)
+        sb.AppendLine("Stud:      " & result.Spec.StudDiaMm.ToString("0.#") & " mm dia x " &
+                      result.Spec.StudLenMm.ToString("0.#") & " mm, " & result.Spec.StudMaterial)
+        sb.AppendLine("Array:     " & result.Spec.LinesPerCavity & " line(s) per cavity, S_t = W_sc/" &
+                      result.Spec.StDivisor & ", S_l max = " & result.Spec.SlMaxMm.ToString("0.#") & " mm")
+    End If
     sb.AppendLine()
-    sb.AppendLine("CODE VIOLATIONS (" & result.Violations.Count & ") -- see the schedule CSV:")
-    Dim shown As Integer = 0
-    For Each v As Violation In result.Violations
-        If shown >= 8 Then
-            sb.AppendLine("  ... and " & (result.Violations.Count - shown) & " more.")
-            Exit For
-        End If
-        sb.AppendLine("  [" & v.Code & "] " & v.Detail)
-        shown += 1
-    Next
-    MsgBox(sb.ToString(), vbExclamation, "StudPlacer - completed with violations")
-Else
-    MsgBox(sb.ToString(), vbInformation, "StudPlacer")
-End If
+    sb.AppendLine("Studs generated: " & result.Points.Count)
+    sb.AppendLine("Excluded by clearance: " & result.Excluded)
+    sb.AppendLine("Added by density make-up: " & result.MadeUp)
+    sb.AppendLine(placeMsg)
+    sb.AppendLine()
+    sb.AppendLine("Schedule: " & schedPath)
+
+    If result.Violations.Count > 0 Then
+        sb.AppendLine()
+        sb.AppendLine("CODE VIOLATIONS (" & result.Violations.Count & ") -- see the schedule CSV:")
+        Dim shown As Integer = 0
+        For Each v As Violation In result.Violations
+            If shown >= 8 Then
+                sb.AppendLine("  ... and " & (result.Violations.Count - shown) & " more.")
+                Exit For
+            End If
+            sb.AppendLine("  [" & v.Code & "] " & v.Detail)
+            shown += 1
+        Next
+        MsgBox(sb.ToString(), vbExclamation, "StudPlacer - completed with violations")
+    Else
+        MsgBox(sb.ToString(), vbInformation, "StudPlacer")
+    End If
+End Sub
 
 '==============================================================================
 ' Parameter helpers.
