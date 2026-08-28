@@ -1,0 +1,5 @@
+bin/
+obj/
+ilogic-syntax/bin/
+ilogic-syntax/obj/
+ilogic-syntax/generated/

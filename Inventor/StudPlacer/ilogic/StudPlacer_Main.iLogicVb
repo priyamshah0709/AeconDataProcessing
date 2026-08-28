@@ -1,0 +1,235 @@
+'==============================================================================
+' StudPlacer_Main  --  iLogic rule.  Place BWRX-300 DP-SC shear studs on the
+' active module assembly from the 008N9536 G103 code tables.
+'
+' INSTALL
+'   1. Copy the StudPlacer folder to a shared location, e.g.
+'        C:\Aecon\StudPlacer\
+'      so that C:\Aecon\StudPlacer\vb\  and  C:\Aecon\StudPlacer\rules\  exist.
+'   2. If you install somewhere else, edit the three AddVbFile paths below AND
+'      the STUD_RULES_DIR default further down.  Those are the only two places
+'      the install path appears.
+'   3. Tools > Options > iLogic Configuration > External Rule Directories:
+'      add C:\Aecon\StudPlacer\ilogic so this rule can be shared between docs.
+'
+' The AddVbFile paths must be string literals -- the directive runs before the
+' rule compiles, so it cannot read a parameter.
+'==============================================================================
+AddVbFile "C:\Aecon\StudPlacer\vb\StudRules.vb"
+AddVbFile "C:\Aecon\StudPlacer\vb\StudArray.vb"
+AddVbFile "C:\Aecon\StudPlacer\vb\StudPlacer.vb"
+
+Dim inv As Inventor.Application = ThisApplication
+Dim doc As Inventor.Document = ThisDoc.Document
+
+If doc.DocumentType <> DocumentTypeEnum.kAssemblyDocumentObject Then
+    MsgBox("StudPlacer must be run from the module ASSEMBLY, not a part.", vbExclamation, "StudPlacer")
+    Return
+End If
+Dim asmDoc As AssemblyDocument = CType(doc, AssemblyDocument)
+
+'--- configuration ------------------------------------------------------------
+Dim rulesDir As String = ParamText(asmDoc, "STUD_RULES_DIR", "C:\Aecon\StudPlacer\rules")
+Dim studPart As String = ParamText(asmDoc, "STUD_PART_PATH", "C:\Aecon\StudPlacer\parts\Stud_19x157.ipt")
+Dim outDir As String = ParamText(asmDoc, "STUD_OUTPUT_DIR", ThisDoc.Path)
+Dim exclPath As String = ParamText(asmDoc, "STUD_EXCLUSIONS_CSV", "")
+Dim placeGeom As Boolean = (ParamText(asmDoc, "STUD_PLACE_GEOMETRY", "TRUE").ToUpper() <> "FALSE")
+Dim maxOcc As Integer = CInt(ParamNum(asmDoc, "STUD_MAX_OCCURRENCES", 4000))
+
+'--- module description -------------------------------------------------------
+Dim m As ModuleInput = New ModuleInput()
+m.ModuleId = ParamText(asmDoc, "STUD_MODULE_ID", ThisDoc.FileName(False))
+m.Component = ParamText(asmDoc, "STUD_COMPONENT", "")
+m.Geometry = ParamText(asmDoc, "STUD_GEOMETRY", "FLAT").ToUpper()
+m.ElevM = ParamNum(asmDoc, "STUD_ELEV_M", 0.0)
+
+m.WscMm = ParamMm(asmDoc, "STUD_WSC_MM", 0.0)
+m.PlateWidthMm = ParamMm(asmDoc, "STUD_PLATE_WIDTH_MM", 0.0)
+m.PlateLengthMm = ParamMm(asmDoc, "STUD_PLATE_LENGTH_MM", 0.0)
+m.DatumOffsetMm = ParamMm(asmDoc, "STUD_DATUM_OFFSET_MM", 0.0)
+
+m.RadiusMm = ParamMm(asmDoc, "STUD_RADIUS_MM", 0.0)
+m.SpanDeg = ParamDeg(asmDoc, "STUD_SPAN_DEG", 0.0)
+m.DatumDeg = ParamDeg(asmDoc, "STUD_DATUM_DEG", 0.0)
+m.DiaphPitchDeg = ParamDeg(asmDoc, "STUD_DIAPH_PITCH_DEG", 0.0)
+
+m.RInnerMm = ParamMm(asmDoc, "STUD_R_INNER_MM", 0.0)
+m.ROuterMm = ParamMm(asmDoc, "STUD_R_OUTER_MM", 0.0)
+
+m.DatumAlign = ParamText(asmDoc, "STUD_DATUM_ALIGN", "DIAPHRAGM").ToUpper()
+m.TermStart = ParamText(asmDoc, "STUD_TERM_START", "SPLICE").ToUpper()
+m.TermEnd = ParamText(asmDoc, "STUD_TERM_END", "SPLICE").ToUpper()
+m.SpliceIdStart = ParamText(asmDoc, "STUD_SPLICE_ID_START", "").ToUpper()
+m.SpliceIdEnd = ParamText(asmDoc, "STUD_SPLICE_ID_END", "").ToUpper()
+m.TransverseMode = ParamText(asmDoc, "STUD_TRANSVERSE_MODE", "EVEN").ToUpper()
+m.StudDirSign = ParamNum(asmDoc, "STUD_DIR_SIGN", 1.0)
+m.FaceOffsetMm = ParamMm(asmDoc, "STUD_FACE_OFFSET_MM", 0.0)
+m.DensityMakeup = (ParamText(asmDoc, "STUD_DENSITY_MAKEUP", "TRUE").ToUpper() <> "FALSE")
+
+If m.Component = "" Then
+    MsgBox("Parameter STUD_COMPONENT is required." & vbCrLf & vbCrLf &
+           "Walls:  SCCV_WALL | RB_OUTER_WALL | RPV_PEDESTAL_WALL" & vbCrLf &
+           "Floors: INNER_BASEMAT | OUTER_BASEMAT | INTERIOR_FLOOR",
+           vbExclamation, "StudPlacer")
+    Return
+End If
+
+'--- run ----------------------------------------------------------------------
+Dim tables As RuleTables
+Dim result As StudArrayResult
+Try
+    tables = RuleTables.Load(rulesDir)
+    Dim zones As List(Of ExclusionZone) = StudPlacer.LoadExclusions(exclPath)
+    Dim builder As StudArrayBuilder = New StudArrayBuilder(tables, m)
+    result = builder.Build(zones)
+Catch ex As Exception
+    MsgBox("StudPlacer failed while resolving the code rules:" & vbCrLf & vbCrLf & ex.Message,
+           vbCritical, "StudPlacer")
+    Return
+End Try
+
+'--- export -------------------------------------------------------------------
+If Not System.IO.Directory.Exists(outDir) Then System.IO.Directory.CreateDirectory(outDir)
+Dim schedPath As String = System.IO.Path.Combine(outDir, m.ModuleId & "_studs.csv")
+Dim compatPath As String = System.IO.Path.Combine(outDir, m.ModuleId & "_studly.csv")
+StudPlacer.ExportSchedule(schedPath, m, result, "008N9536 Rev 11 / rules dir " & rulesDir)
+StudPlacer.ExportStudlyCompat(compatPath, m, result,
+                              ParamText(asmDoc, "STUD_PART_NUMBER", m.ModuleId),
+                              ParamText(asmDoc, "STUD_PART_DESCRIPTION", m.Component))
+
+'--- place --------------------------------------------------------------------
+Dim placeMsg As String = "Geometry placement disabled (STUD_PLACE_GEOMETRY = False)."
+Dim placedCount As Integer = 0
+If placeGeom AndAlso result.Points.Count > 0 Then
+    Try
+        placedCount = StudPlacer.Place(inv, asmDoc, studPart, result.Points, maxOcc, placeMsg)
+    Catch ex As Exception
+        placeMsg = "Placement failed: " & ex.Message
+    End Try
+ElseIf result.Points.Count = 0 Then
+    placeMsg = "No studs generated."
+End If
+
+'--- report -------------------------------------------------------------------
+Dim sb As New System.Text.StringBuilder()
+sb.AppendLine("Module:    " & m.ModuleId)
+sb.AppendLine("Component: " & m.Component & "   Geometry: " & m.Geometry)
+If result.Spec IsNot Nothing Then
+    sb.AppendLine("Rule:      " & result.Spec.Source)
+    sb.AppendLine("Stud:      " & result.Spec.StudDiaMm.ToString("0.#") & " mm dia x " &
+                  result.Spec.StudLenMm.ToString("0.#") & " mm, " & result.Spec.StudMaterial)
+    sb.AppendLine("Array:     " & result.Spec.LinesPerCavity & " line(s) per cavity, S_t = W_sc/" &
+                  result.Spec.StDivisor & ", S_l max = " & result.Spec.SlMaxMm.ToString("0.#") & " mm")
+End If
+sb.AppendLine()
+sb.AppendLine("Studs generated: " & result.Points.Count)
+sb.AppendLine("Excluded by clearance: " & result.Excluded)
+sb.AppendLine("Added by density make-up: " & result.MadeUp)
+sb.AppendLine(placeMsg)
+sb.AppendLine()
+sb.AppendLine("Schedule: " & schedPath)
+
+If result.Violations.Count > 0 Then
+    sb.AppendLine()
+    sb.AppendLine("CODE VIOLATIONS (" & result.Violations.Count & ") -- see the schedule CSV:")
+    Dim shown As Integer = 0
+    For Each v As Violation In result.Violations
+        If shown >= 8 Then
+            sb.AppendLine("  ... and " & (result.Violations.Count - shown) & " more.")
+            Exit For
+        End If
+        sb.AppendLine("  [" & v.Code & "] " & v.Detail)
+        shown += 1
+    Next
+    MsgBox(sb.ToString(), vbExclamation, "StudPlacer - completed with violations")
+Else
+    MsgBox(sb.ToString(), vbInformation, "StudPlacer")
+End If
+
+'==============================================================================
+' Parameter helpers.
+'
+' All STUD_* numeric parameters may be created either as UNITLESS (ul) values
+' holding plain millimetres/degrees, or as real length/angle parameters. These
+' helpers normalise both cases so the template author can pick either.
+'==============================================================================
+Function FindParam(ByVal d As Inventor.AssemblyDocument, ByVal name As String) As Inventor.Parameter
+    ' Typed as AssemblyDocument on purpose: Inventor.Document has no
+    ' ComponentDefinition member, so taking the base type here does not compile.
+    Dim prms As Inventor.Parameters
+    Try
+        prms = d.ComponentDefinition.Parameters
+    Catch
+        Return Nothing
+    End Try
+    Try
+        Return prms.UserParameters.Item(name)
+    Catch
+    End Try
+    Try
+        Return prms.Item(name)
+    Catch
+    End Try
+    Return Nothing
+End Function
+
+Function ParamText(ByVal d As Inventor.AssemblyDocument, ByVal name As String, ByVal dflt As String) As String
+    Dim p As Inventor.Parameter = FindParam(d, name)
+    If p Is Nothing Then Return dflt
+    Try
+        Dim s As String = CStr(p.Value)
+        If s Is Nothing OrElse s.Trim() = "" Then Return dflt
+        Return s.Trim()
+    Catch
+        Return dflt
+    End Try
+End Function
+
+Function ParamNum(ByVal d As Inventor.AssemblyDocument, ByVal name As String, ByVal dflt As Double) As Double
+    Dim p As Inventor.Parameter = FindParam(d, name)
+    If p Is Nothing Then Return dflt
+    Try
+        Return CDbl(p.Value)
+    Catch
+        Return dflt
+    End Try
+End Function
+
+Function IsUnitless(ByVal p As Inventor.Parameter) As Boolean
+    Dim u As String = ""
+    Try
+        u = p.Units
+    Catch
+        Return True
+    End Try
+    If u Is Nothing Then Return True
+    u = u.Trim().ToLower()
+    Return (u = "" OrElse u = "ul" OrElse u = "unitless")
+End Function
+
+Function ParamMm(ByVal d As Inventor.AssemblyDocument, ByVal name As String, ByVal dflt As Double) As Double
+    Dim p As Inventor.Parameter = FindParam(d, name)
+    If p Is Nothing Then Return dflt
+    Try
+        Dim raw As Double = CDbl(p.Value)
+        If IsUnitless(p) Then Return raw
+        ' Length parameters report in Inventor database units (centimetres).
+        Return d.UnitsOfMeasure.ConvertUnits(raw,
+                   UnitsTypeEnum.kDatabaseLengthUnits, UnitsTypeEnum.kMillimeterLengthUnits)
+    Catch
+        Return dflt
+    End Try
+End Function
+
+Function ParamDeg(ByVal d As Inventor.AssemblyDocument, ByVal name As String, ByVal dflt As Double) As Double
+    Dim p As Inventor.Parameter = FindParam(d, name)
+    If p Is Nothing Then Return dflt
+    Try
+        Dim raw As Double = CDbl(p.Value)
+        If IsUnitless(p) Then Return raw
+        ' Angle parameters report in radians.
+        Return raw * 180.0 / Math.PI
+    Catch
+        Return dflt
+    End Try
+End Function

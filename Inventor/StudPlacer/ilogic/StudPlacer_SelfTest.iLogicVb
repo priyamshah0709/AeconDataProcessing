@@ -1,0 +1,220 @@
+'==============================================================================
+' StudPlacer_SelfTest  --  asserts the engine reproduces the printed values in
+' 008N9536 G103 Tables 1-6 and 1-7.
+'
+' Run this after ANY edit to the rule CSVs. It needs no model geometry, so it
+' can be run from any open document.
+'
+' The critical checks are the S_t ones: the engine does NOT read the tabulated
+' transversal spacing, it derives S_t = W_sc / (lines + 1). If those derived
+' values match the printed column, the generative rule is faithful to the
+' drawing and will also behave correctly at non-tabulated W_sc.
+'==============================================================================
+AddVbFile "C:\Aecon\StudPlacer\vb\StudRules.vb"
+AddVbFile "C:\Aecon\StudPlacer\vb\StudArray.vb"
+AddVbFile "C:\Aecon\StudPlacer\vb\StudPlacer.vb"
+
+Dim rulesDir As String = "C:\Aecon\StudPlacer\rules"
+
+Dim log As New System.Text.StringBuilder()
+Dim pass As Integer = 0
+Dim fail As Integer = 0
+
+Dim t As RuleTables = RuleTables.Load(rulesDir)
+
+'--- Table 1-6, walls ---------------------------------------------------------
+Dim s As StudSpec
+
+s = t.ResolveWall("SCCV_WALL", -30.0)
+Chk("T1-6 SCCV columns", s.LinesPerCavity, 2, log, pass, fail)
+Chk("T1-6 SCCV S_l", s.SlMaxMm, 101.6, log, pass, fail)
+Chk("T1-6 SCCV S_t @ Wsc 609.6", s.StNominal(609.6), 203.2, log, pass, fail)
+Chk("T1-6 SCCV S_t <= max", If(s.StNominal(609.6) <= s.StMaxMm, 1, 0), 1, log, pass, fail)
+Chk("T1-6 SCCV stud dia", s.StudDiaMm, 19.1, log, pass, fail)
+Chk("T1-6 SCCV stud len", s.StudLenMm, 157.2, log, pass, fail)
+
+s = t.ResolveWall("RB_OUTER_WALL", -30.0)
+Chk("T1-6 RB Outer columns", s.LinesPerCavity, 1, log, pass, fail)
+Chk("T1-6 RB Outer S_l", s.SlMaxMm, 76.2, log, pass, fail)
+Chk("T1-6 RB Outer S_t @ Wsc 457.2", s.StNominal(457.2), 228.6, log, pass, fail)
+Chk("T1-6 RB Outer S_t max", s.StMaxMm, 381.0, log, pass, fail)
+
+s = t.ResolveWall("RPV_PEDESTAL_WALL", -33.0)
+Chk("T1-6 RPV lower band S_l", s.SlMaxMm, 101.6, log, pass, fail)
+s = t.ResolveWall("RPV_PEDESTAL_WALL", -20.0)
+Chk("T1-6 RPV upper band S_l", s.SlMaxMm, 203.2, log, pass, fail)
+Chk("T1-6 RPV S_t @ Wsc 609.6", s.StNominal(609.6), 203.2, log, pass, fail)
+Chk("T1-6 RPV S_t max", s.StMaxMm, 431.8, log, pass, fail)
+
+'--- Table 1-7, basemat and floors -------------------------------------------
+s = t.ResolveFloor("INNER_BASEMAT", 609.6)
+Chk("T1-7 Inner Basemat rows @ 609.6", s.LinesPerCavity, 2, log, pass, fail)
+Chk("T1-7 Inner Basemat S_l @ 609.6", s.SlMaxMm, 254.0, log, pass, fail)
+Chk("T1-7 Inner Basemat S_t @ 609.6", s.StNominal(609.6), 203.2, log, pass, fail)
+
+s = t.ResolveFloor("INNER_BASEMAT", 508.0)
+Chk("T1-7 Inner Basemat rows @ 508", s.LinesPerCavity, 1, log, pass, fail)
+Chk("T1-7 Inner Basemat S_l @ 508", s.SlMaxMm, 152.4, log, pass, fail)
+Chk("T1-7 Inner Basemat S_t @ 508", s.StNominal(508.0), 254.0, log, pass, fail)
+
+s = t.ResolveFloor("INNER_BASEMAT", 200.0)
+Chk("T1-7 Inner Basemat No Studs < 254", If(s.NoStuds, 1, 0), 1, log, pass, fail)
+
+s = t.ResolveFloor("OUTER_BASEMAT", 609.6)
+Chk("T1-7 Outer Basemat rows @ 609.6", s.LinesPerCavity, 2, log, pass, fail)
+Chk("T1-7 Outer Basemat S_t @ 609.6", s.StNominal(609.6), 203.2, log, pass, fail)
+
+s = t.ResolveFloor("INTERIOR_FLOOR", 609.6)
+Chk("T1-7 Interior Floor rows @ 609.6", s.LinesPerCavity, 2, log, pass, fail)
+Chk("T1-7 Interior Floor S_l @ 609.6", s.SlMaxMm, 76.2, log, pass, fail)
+Chk("T1-7 Interior Floor S_t @ 609.6", s.StNominal(609.6), 203.2, log, pass, fail)
+
+s = t.ResolveFloor("INTERIOR_FLOOR", 406.4)
+Chk("T1-7 Interior Floor rows @ 406.4", s.LinesPerCavity, 1, log, pass, fail)
+Chk("T1-7 Interior Floor S_t @ 406.4", s.StNominal(406.4), 203.2, log, pass, fail)
+
+s = t.ResolveFloor("INTERIOR_FLOOR", 152.4)
+Chk("T1-7 Interior Floor No Studs @ 152.4", If(s.NoStuds, 1, 0), 1, log, pass, fail)
+
+'--- global constraints -------------------------------------------------------
+Chk("Min spacing 3/4in stud", t.Constraints.MinSpacingFor(19.1), 76.2, log, pass, fail)
+Chk("Min spacing 1/2in stud", t.Constraints.MinSpacingFor(12.7), 50.8, log, pass, fail)
+Chk("Edge clearance", t.Constraints.Value("MIN_EDGE_CLEARANCE"), 38.1, log, pass, fail)
+
+'--- flat wall end-to-end -----------------------------------------------------
+Dim m As New ModuleInput()
+m.ModuleId = "SELFTEST-SCCV"
+m.Component = "SCCV_WALL"
+m.Geometry = "FLAT"
+m.ElevM = -30.0
+m.WscMm = 609.6
+m.PlateWidthMm = 609.6 * 4          ' four full cavities
+m.PlateLengthMm = 2000.0
+m.TermStart = "LANDING_PLATE"
+m.TermEnd = "SPLICE"
+m.DensityMakeup = False
+Dim r As StudArrayResult = New StudArrayBuilder(t, m).Build(New List(Of ExclusionZone))
+' 4 cavities x 2 lines = 8 stud lines.
+Chk("Flat wall: stud lines", CountLines(r), 8, log, pass, fail)
+Chk("Flat wall: no violations", r.Violations.Count, 0, log, pass, fail)
+Chk("Flat wall: longitudinal pitch <= S_l", If(MaxPitch(r) <= 101.6 + 0.01, 1, 0), 1, log, pass, fail)
+' Interior floors have S_l = the AISC minimum, so the pitch has zero slack.
+' Assert the lower bound too, not just the ceiling.
+Chk("Flat wall: longitudinal pitch >= 76.2", If(MinPitch(r) >= 76.2 - 0.01, 1, 0), 1, log, pass, fail)
+Chk("Flat wall: pitch runs at S_l", MaxPitch(r), 101.6, log, pass, fail)
+
+'--- radial floor degradation -------------------------------------------------
+' 2 deg diaphragm pitch: the cavity crosses 406.4 mm at r = 11640 and 152.4 mm
+' at r = 4366, so a ring spanning 3000..17000 must show 2 rows, then 1, then 0.
+' 17000 is deliberate -- at 18000 the cavity would be 610.9 mm, above the
+' 609.6 mm maximum diaphragm spacing, and the engine would (correctly) refuse.
+Dim f As New ModuleInput()
+f.ModuleId = "SELFTEST-RING"
+f.Component = "INTERIOR_FLOOR"
+f.Geometry = "ANNULAR"
+f.RInnerMm = 3000.0
+f.ROuterMm = 17000.0
+f.DiaphPitchDeg = 2.0
+f.SpanDeg = 2.0                     ' one channel
+f.DatumDeg = 0.0
+f.TermStart = "SPLICE"
+f.TermEnd = "SPLICE"
+f.DensityMakeup = False
+Dim rf As StudArrayResult = New StudArrayBuilder(t, f).Build(New List(Of ExclusionZone))
+Chk("Radial floor: 2-row region exists", If(HasLine(rf, 2), 1, 0), 1, log, pass, fail)
+Chk("Radial floor: 1-row region exists", If(HasLine(rf, 1), 1, 0), 1, log, pass, fail)
+Chk("Radial floor: inner region empty below r=4366", If(MinRadius(rf) > 4366.0, 1, 0), 1, log, pass, fail)
+' The discriminating check: a second stud line must never appear inboard of the
+' radius where the cavity reaches 406.4 mm.
+Chk("Radial floor: 2nd line only outboard of r=11640", If(MinRadiusOfLine(rf, 2) > 11640.0, 1, 0), 1, log, pass, fail)
+Chk("Radial floor: no violations", rf.Violations.Count, 0, log, pass, fail)
+' S_l for interior floors is 76.2 mm, which is ALSO the minimum stud spacing.
+' The radial pitch must land on it exactly.
+Chk("Radial floor: radial pitch = S_l exactly", MaxPitch(rf), 76.2, log, pass, fail)
+Chk("Radial floor: radial pitch >= min spacing", If(MinPitch(rf) >= 76.2 - 0.01, 1, 0), 1, log, pass, fail)
+
+'--- report -------------------------------------------------------------------
+Dim head As String = "StudPlacer self-test: " & pass & " passed, " & fail & " failed." & vbCrLf & vbCrLf
+If fail = 0 Then
+    MsgBox(head & log.ToString(), vbInformation, "StudPlacer self-test PASSED")
+Else
+    MsgBox(head & log.ToString(), vbCritical, "StudPlacer self-test FAILED")
+End If
+
+'------------------------------------------------------------------ assertions
+Sub Chk(ByVal name As String, ByVal actual As Double, ByVal expected As Double,
+        ByRef log As System.Text.StringBuilder, ByRef pass As Integer, ByRef fail As Integer)
+    If Math.Abs(actual - expected) < 0.02 Then
+        pass += 1
+    Else
+        fail += 1
+        log.AppendLine("FAIL  " & name & ": expected " & expected.ToString("0.###") &
+                       ", got " & actual.ToString("0.###"))
+    End If
+End Sub
+
+Function CountLines(ByVal r As StudArrayResult) As Integer
+    Dim seen As New System.Collections.Generic.HashSet(Of String)
+    For Each p As StudPoint In r.Points
+        seen.Add(p.Channel & "/" & p.Line)
+    Next
+    Return seen.Count
+End Function
+
+Function PitchExtreme(ByVal r As StudArrayResult, ByVal wantMax As Boolean) As Double
+    Dim byLine As New System.Collections.Generic.Dictionary(Of String, System.Collections.Generic.List(Of Double))
+    For Each p As StudPoint In r.Points
+        If p.Line = 0 Then Continue For
+        Dim k As String = p.Channel & "/" & p.Line
+        If Not byLine.ContainsKey(k) Then byLine(k) = New System.Collections.Generic.List(Of Double)
+        byLine(k).Add(p.LongMm)
+    Next
+    Dim mx As Double = 0.0
+    Dim mn As Double = Double.MaxValue
+    For Each kv As System.Collections.Generic.KeyValuePair(Of String, System.Collections.Generic.List(Of Double)) In byLine
+        kv.Value.Sort()
+        For i As Integer = 1 To kv.Value.Count - 1
+            Dim d As Double = kv.Value(i) - kv.Value(i - 1)
+            mx = Math.Max(mx, d)
+            mn = Math.Min(mn, d)
+        Next
+    Next
+    If wantMax Then Return mx
+    If mn = Double.MaxValue Then Return 0.0
+    Return mn
+End Function
+
+Function MaxPitch(ByVal r As StudArrayResult) As Double
+    Return PitchExtreme(r, True)
+End Function
+
+Function MinPitch(ByVal r As StudArrayResult) As Double
+    Return PitchExtreme(r, False)
+End Function
+
+Function HasLine(ByVal r As StudArrayResult, ByVal lineIndex As Integer) As Boolean
+    For Each p As StudPoint In r.Points
+        If p.Line = lineIndex Then Return True
+    Next
+    Return False
+End Function
+
+Function MinRadiusOfLine(ByVal r As StudArrayResult, ByVal lineIndex As Integer) As Double
+    Dim mn As Double = Double.MaxValue
+    For Each p As StudPoint In r.Points
+        If p.Line = lineIndex Then
+            mn = Math.Min(mn, Math.Sqrt(p.Xmm * p.Xmm + p.Ymm * p.Ymm))
+        End If
+    Next
+    If mn = Double.MaxValue Then Return 0.0
+    Return mn
+End Function
+
+Function MinRadius(ByVal r As StudArrayResult) As Double
+    Dim mn As Double = Double.MaxValue
+    For Each p As StudPoint In r.Points
+        mn = Math.Min(mn, Math.Sqrt(p.Xmm * p.Xmm + p.Ymm * p.Ymm))
+    Next
+    If mn = Double.MaxValue Then Return 0.0
+    Return mn
+End Function

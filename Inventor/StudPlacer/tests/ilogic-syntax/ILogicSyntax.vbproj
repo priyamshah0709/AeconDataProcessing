@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    COMPILE-CHECK ONLY. Never runs.
+
+    Wraps the .iLogicVb rule files the way iLogic itself does (statements into a
+    Sub, trailing Sub/Function declarations hoisted to class scope) and builds
+    them against the engine plus stubbed iLogic globals. Its job is to catch
+    syntax errors and bad API member names BEFORE the file is pasted into
+    Inventor, where the only feedback is a runtime rule-editor error.
+
+    The wrappers under generated/ are produced by ../run-tests.sh from the
+    real rule files, so this can never drift from what ships.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace></RootNamespace>
+    <OptionStrict>Off</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <NoWarn>$(NoWarn);BC42353;BC42105;BC42107;BC42024</NoWarn>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../InventorStubs.vb" Link="InventorStubs.vb" />
+    <Compile Include="ILogicStubs.vb" />
+    <Compile Include="../../vb/StudRules.vb" Link="engine/StudRules.vb" />
+    <Compile Include="../../vb/StudArray.vb" Link="engine/StudArray.vb" />
+    <Compile Include="../../vb/StudPlacer.vb" Link="engine/StudPlacer.vb" />
+    <Compile Include="generated/*.vb" />
+  </ItemGroup>
+
+</Project>

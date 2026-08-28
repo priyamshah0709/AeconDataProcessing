@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Compiles the ACTUAL shipped engine (../vb/*.vb) and runs the code-rule
+    assertions against it. Nothing here is deployed to Inventor: InventorStubs.vb
+    exists only so StudPlacer.vb can be type-checked off Windows.
+
+    Compiler switches are set to match iLogic's rule compiler, so anything that
+    builds here builds there:
+        Option Strict Off, Option Explicit On, Option Infer On, no root namespace.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <StartupObject>StudPlacerTests</StartupObject>
+    <RootNamespace></RootNamespace>
+    <OptionStrict>Off</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <NoWarn>$(NoWarn);BC42353;BC42105;BC42107</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ilogic-syntax is a sibling project living under this folder; keep its
+         sources and build output out of this project's default glob. -->
+    <Compile Remove="ilogic-syntax/**" />
+    <None Remove="ilogic-syntax/**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../vb/StudRules.vb" Link="engine/StudRules.vb" />
+    <Compile Include="../vb/StudArray.vb" Link="engine/StudArray.vb" />
+    <Compile Include="../vb/StudPlacer.vb" Link="engine/StudPlacer.vb" />
+  </ItemGroup>
+
+</Project>
