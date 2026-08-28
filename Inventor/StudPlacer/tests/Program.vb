@@ -13,7 +13,8 @@ Option Explicit On
 Imports System
 Imports System.Collections.Generic
 Imports System.Globalization
-Imports System.IO
+' System.IO is not imported: the Inventor stubs declare colliding File/Path
+' types on purpose, mirroring iLogic. Always qualify in full.
 Imports Inventor
 
 Module StudPlacerTests
@@ -61,9 +62,9 @@ Module StudPlacerTests
     Function FindRulesDir() As String
         Dim d As String = AppContext.BaseDirectory
         For i As Integer = 0 To 8
-            Dim cand As String = Path.Combine(d, "rules")
-            If File.Exists(Path.Combine(cand, "global_constraints.csv")) Then Return cand
-            Dim parent As DirectoryInfo = Directory.GetParent(d.TrimEnd(Path.DirectorySeparatorChar))
+            Dim cand As String = System.IO.Path.Combine(d, "rules")
+            If System.IO.File.Exists(System.IO.Path.Combine(cand, "global_constraints.csv")) Then Return cand
+            Dim parent As System.IO.DirectoryInfo = System.IO.Directory.GetParent(d.TrimEnd(System.IO.Path.DirectorySeparatorChar))
             If parent Is Nothing Then Exit For
             d = parent.FullName
         Next
@@ -460,8 +461,8 @@ Module StudPlacerTests
         Grp("Inventor placement (stubbed API)")
         Dim inv As New Inventor.Application()
         Dim asmDoc As New Inventor.AssemblyDocument()
-        Dim studPath As String = Path.Combine(Path.GetTempPath(), "StudPlacerTestStud.ipt")
-        File.WriteAllText(studPath, "stub")
+        Dim studPath As String = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "StudPlacerTestStud.ipt")
+        System.IO.File.WriteAllText(studPath, "stub")
 
         Dim msg As String = ""
         Dim placed As Integer = StudPlacer.Place(inv, asmDoc, studPath, r.Points, 100000, msg)
@@ -512,7 +513,7 @@ Module StudPlacerTests
 
         threw = False
         Try
-            StudPlacer.Place(inv, asmDoc, Path.Combine(Path.GetTempPath(), "does_not_exist.ipt"), r.Points, 100, msg)
+            StudPlacer.Place(inv, asmDoc, System.IO.Path.Combine(System.IO.Path.GetTempPath(), "does_not_exist.ipt"), r.Points, 100, msg)
         Catch ex As Exception
             threw = True
         End Try
@@ -529,38 +530,38 @@ Module StudPlacerTests
 
         '--------------------------------------------------------------------
         Grp("CSV export")
-        Dim outDir As String = Path.Combine(Path.GetTempPath(), "studplacer_test")
-        Directory.CreateDirectory(outDir)
-        Dim schedPath As String = Path.Combine(outDir, "sched.csv")
-        Dim compatPath As String = Path.Combine(outDir, "compat.csv")
+        Dim outDir As String = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "studplacer_test")
+        System.IO.Directory.CreateDirectory(outDir)
+        Dim schedPath As String = System.IO.Path.Combine(outDir, "sched.csv")
+        Dim compatPath As String = System.IO.Path.Combine(outDir, "compat.csv")
         StudPlacer.ExportSchedule(schedPath, m, r, "008N9536 Rev 11")
         StudPlacer.ExportStudlyCompat(compatPath, m, r, "PN-123", "SCCV wall")
 
-        Dim sched As String = File.ReadAllText(schedPath)
+        Dim sched As String = System.IO.File.ReadAllText(schedPath)
         Ok("schedule has a header block", sched.IndexOf("HEADER,MODULE_ID,TEST-SCCV") >= 0)
         Ok("schedule reports the rule source", sched.IndexOf("HEADER,RULE_SOURCE") >= 0)
         Ok("schedule reports the derived S_t", sched.IndexOf("HEADER,S_T_NOMINAL_MM,203.2") >= 0)
         Ok("schedule reports the total", sched.IndexOf("HEADER,TOTAL_STUDS," & r.Points.Count) >= 0)
         Ok("schedule has the column header", sched.IndexOf("INDEX,CHANNEL,LINE,STATION") >= 0)
         Dim schedRows As Integer = 0
-        For Each ln As String In File.ReadAllLines(schedPath)
+        For Each ln As String In System.IO.File.ReadAllLines(schedPath)
             If ln.Length > 0 AndAlso Char.IsDigit(ln(0)) AndAlso ln.IndexOf(",") > 0 Then schedRows += 1
         Next
         Eq("schedule row per stud", schedRows, r.Points.Count)
 
-        Dim compat As String = File.ReadAllText(compatPath)
+        Dim compat As String = System.IO.File.ReadAllText(compatPath)
         Ok("legacy CSV keeps the Studly header", compat.StartsWith("Type,Index,Field,Value"))
         Ok("legacy CSV Assembly_Type 1 for flat", compat.IndexOf("Assembly_Type,,,1") >= 0)
         Ok("legacy CSV total matches", compat.IndexOf("Total_Studs,,," & r.Points.Count) >= 0)
         Dim rollLines As Integer = 0
-        For Each ln As String In File.ReadAllLines(compatPath)
+        For Each ln As String In System.IO.File.ReadAllLines(compatPath)
             If ln.IndexOf(",Roll,") >= 0 Then rollLines += 1
         Next
         Eq("legacy CSV one Roll row per stud", rollLines, r.Points.Count)
 
         ' Round-trip the exclusion sample through the loader.
-        Dim sampleExcl As String = Path.Combine(Path.GetDirectoryName(rulesDir), "samples", "exclusions_example.csv")
-        If File.Exists(sampleExcl) Then
+        Dim sampleExcl As String = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(rulesDir), "samples", "exclusions_example.csv")
+        If System.IO.File.Exists(sampleExcl) Then
             Dim loaded As List(Of ExclusionZone) = StudPlacer.LoadExclusions(sampleExcl)
             Eq("sample exclusion file parses", loaded.Count, 5)
             EqS("first zone kind", loaded(0).Kind, "CIRCLE")
@@ -569,7 +570,7 @@ Module StudPlacerTests
             Console.WriteLine("   (skipped sample exclusion round-trip; file not found)")
         End If
         Eq("missing exclusion file yields empty list",
-           StudPlacer.LoadExclusions(Path.Combine(outDir, "nope.csv")).Count, 0)
+           StudPlacer.LoadExclusions(System.IO.Path.Combine(outDir, "nope.csv")).Count, 0)
 
         '--------------------------------------------------------------------
         Grp("Locale safety")
@@ -590,7 +591,7 @@ Module StudPlacerTests
         Console.WriteLine(" " & Passed & " passed, " & Failed & " failed")
         Console.WriteLine("=====================================================")
         If Failed > 0 Then
-            Environment.Exit(1)
+            System.Environment.Exit(1)
         End If
     End Sub
 

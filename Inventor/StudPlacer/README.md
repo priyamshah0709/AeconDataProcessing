@@ -139,9 +139,20 @@ Three stages, all green:
 | `tests/` | **132 assertions.** Compiles the actual `vb/*.vb` files that Inventor loads and runs them: every table band, end-to-end flat / curved / radial builds, exclusion geometry, density make-up, matrix orthonormality and the mm→cm conversion, idempotent re-runs, the occurrence guard, CSV round-trips, and locale safety under a comma-decimal culture. |
 
 `tests/InventorStubs.vb` exists only so the code can be type-checked off Windows;
-it is never deployed. It is deliberately faithful on the point that matters —
-`Inventor.Document` exposes `DocumentType` and `UnitsOfMeasure` but **not**
-`ComponentDefinition`, exactly as the real API does.
+it is never deployed. It is **deliberately adversarial**, because a permissive
+stub is worse than no stub — it lets code compile here that Inventor then rejects:
+
+- `Inventor.Document` exposes `DocumentType` and `UnitsOfMeasure` but **not**
+  `ComponentDefinition`, exactly as the real API does.
+- It declares empty `File`, `Path`, `Attribute`, `Environment`, `Color` and
+  `View` classes. These are real Inventor types whose names collide with the
+  namespaces iLogic imports by default, so an unqualified `File.Exists` is
+  ambiguous inside a rule. Nothing uses them — they exist purely to reproduce
+  that collision at build time.
+
+The shipped `vb/*.vb` files therefore do **not** import `System.IO` and always
+write `System.IO.File` / `System.IO.Path` in full. Reintroducing a bare `File.`
+fails the test build immediately.
 
 ### What compiling actually caught
 
@@ -165,6 +176,16 @@ And one that only running it inside Inventor caught, now guarded against:
    A plain VB compiler builds such a rule happily; the Inventor rule editor
    rejects it with *"Error in rule program format"*. `wrap_rules.py` now asserts
    the entry point exists and comes first, so stage 2 fails the build instead.
+
+5. **`File` and `Path` are ambiguous inside a rule.** iLogic compiles AddVbFile
+   sources in the same compilation as the rule, under its own global imports —
+   which include both `System.IO` and `Inventor`. The Inventor API has its own
+   `File` and `Path` types, so `File.Exists(...)` fails with *"'File' is
+   ambiguous"*. The engine now qualifies in full, and the stubs declare the
+   colliding types so the harness reproduces it.
+
+The pattern in 4 and 5 is the same: **the local compiler was more permissive
+than Inventor.** Each fix tightened the harness rather than just the code.
 
 ## Known caveats — read before trusting output
 

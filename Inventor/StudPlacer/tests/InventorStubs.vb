@@ -86,6 +86,33 @@ Namespace Inventor
     End Class
 
 
+
+    ' ---- NAME COLLISIONS, DELIBERATELY ---------------------------------------
+    ' These are real types in the Inventor API whose names clash with types in
+    ' namespaces iLogic imports by default (System, System.IO, System.Drawing).
+    ' Inside an iLogic rule an unqualified reference to any of them fails with
+    '   "'File' is ambiguous, imported from the namespaces or types
+    '    'System.IO, Inventor'"
+    ' They are declared here for exactly that reason: without them the test
+    ' harness compiles code that Inventor then refuses. Nothing uses them.
+    Public Class File
+    End Class
+
+    Public Class Path
+    End Class
+
+    Public Class Attribute
+    End Class
+
+    Public Class Environment
+    End Class
+
+    Public Class Color
+    End Class
+
+    Public Class View
+    End Class
+
     ' ---- document / parameter side of the API -------------------------------
     ' Faithful on the point that matters: the real Inventor.Document interface
     ' exposes DocumentType and UnitsOfMeasure but NOT ComponentDefinition. Only

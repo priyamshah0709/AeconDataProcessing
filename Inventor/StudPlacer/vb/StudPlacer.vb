@@ -14,7 +14,15 @@
 Imports System
 Imports System.Collections.Generic
 Imports System.Globalization
-Imports System.IO
+' NOTE: System.IO is deliberately NOT imported here.
+' iLogic compiles AddVbFile sources in the same compilation as the rule, with its
+' own global imports -- which include both System.IO and Inventor. The Inventor
+' API has its own File and Path types, so a bare File.Exists or Path.Combine in
+' this file fails inside Inventor with
+'   "'File' is ambiguous, imported from the namespaces or types 'System.IO, Inventor'"
+' even though it compiles fine on its own. Always write System.IO.File /
+' System.IO.Path in full. Leaving the import out means the test build fails too,
+' rather than passing something Inventor will reject.
 Imports System.Text
 Imports Inventor
 
@@ -25,7 +33,7 @@ Public Class StudPlacer
     ''' <summary>Right-handed coordinate system with local +Z along (dx,dy,dz).</summary>
     Private Shared Function BuildMatrix(ByVal tg As TransientGeometry,
                                         ByVal xmm As Double, ByVal ymm As Double, ByVal zmm As Double,
-                                        ByVal dx As Double, ByVal dy As Double, ByVal dz As Double) As Matrix
+                                        ByVal dx As Double, ByVal dy As Double, ByVal dz As Double) As Inventor.Matrix
         Dim L As Double = Math.Sqrt(dx * dx + dy * dy + dz * dz)
         If L < 0.000000001 Then
             dx = 0.0 : dy = 0.0 : dz = 1.0 : L = 1.0
@@ -52,7 +60,7 @@ Public Class StudPlacer
         Dim by As Double = dz * ax - dx * az
         Dim bz As Double = dx * ay - dy * ax
 
-        Dim m As Matrix = tg.CreateMatrix()
+        Dim m As Inventor.Matrix = tg.CreateMatrix()
         m.SetCoordinateSystem(tg.CreatePoint(xmm / 10.0, ymm / 10.0, zmm / 10.0),
                               tg.CreateVector(ax, ay, az),
                               tg.CreateVector(bx, by, bz),
@@ -84,7 +92,7 @@ Public Class StudPlacer
                                  ByVal pts As List(Of StudPoint),
                                  ByVal maxOccurrences As Integer,
                                  ByRef message As String) As Integer
-        If Not File.Exists(studPartPath) Then
+        If Not System.IO.File.Exists(studPartPath) Then
             Throw New Exception("Stud part not found: " & studPartPath)
         End If
         If pts.Count > maxOccurrences Then
@@ -100,7 +108,7 @@ Public Class StudPlacer
 
         Dim priorScreen As Boolean = inv.ScreenUpdating
         Dim priorInteract As Boolean = inv.UserInterfaceManager.UserInteractionDisabled
-        Dim tx As Transaction = Nothing
+        Dim tx As Inventor.Transaction = Nothing
         Try
             inv.ScreenUpdating = False
             inv.UserInterfaceManager.UserInteractionDisabled = True
@@ -109,7 +117,7 @@ Public Class StudPlacer
             ClearExisting(asmDef)
 
             For Each p As StudPoint In pts
-                Dim m As Matrix = BuildMatrix(tg, p.Xmm, p.Ymm, p.Zmm, p.DirX, p.DirY, p.DirZ)
+                Dim m As Inventor.Matrix = BuildMatrix(tg, p.Xmm, p.Ymm, p.Zmm, p.DirX, p.DirY, p.DirZ)
                 Dim occ As ComponentOccurrence = asmDef.Occurrences.Add(studPartPath, m)
                 occ.Name = OccurrencePrefix & p.Channel.ToString("00") & "_" &
                            p.Line.ToString("0") & "_" & p.Station.ToString("000")
@@ -194,7 +202,7 @@ Public Class StudPlacer
                 N(p.DirX), N(p.DirY), N(p.DirZ),
                 N(p.Umm), N(p.Vmm), N(p.DiaMm), N(p.LenMm), N(p.RollDeg), Q(p.Source)}))
         Next
-        File.WriteAllText(path, sb.ToString())
+        System.IO.File.WriteAllText(path, sb.ToString())
     End Sub
 
     ''' <summary>
@@ -234,13 +242,13 @@ Public Class StudPlacer
             sb.AppendLine("Stud," & i & ",Z_Pos," & CInt(Math.Round(p.Zmm)).ToString())
             sb.AppendLine("Stud," & i & ",Roll," & CInt(Math.Round(p.RollDeg * 10.0)).ToString())
         Next
-        File.WriteAllText(path, sb.ToString())
+        System.IO.File.WriteAllText(path, sb.ToString())
     End Sub
 
     ''' <summary>Load per-module exclusion zones (flow holes, sleeves, tie plates).</summary>
     Public Shared Function LoadExclusions(ByVal path As String) As List(Of ExclusionZone)
         Dim list As New List(Of ExclusionZone)
-        If String.IsNullOrEmpty(path) OrElse Not File.Exists(path) Then Return list
+        If String.IsNullOrEmpty(path) OrElse Not System.IO.File.Exists(path) Then Return list
         Dim t As CsvTable = CsvTable.Load(path)
         For Each row As String() In t.Rows
             Dim z As New ExclusionZone()

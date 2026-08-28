@@ -10,7 +10,15 @@
 Imports System
 Imports System.Collections.Generic
 Imports System.Globalization
-Imports System.IO
+' NOTE: System.IO is deliberately NOT imported here.
+' iLogic compiles AddVbFile sources in the same compilation as the rule, with its
+' own global imports -- which include both System.IO and Inventor. The Inventor
+' API has its own File and Path types, so a bare File.Exists or Path.Combine in
+' this file fails inside Inventor with
+'   "'File' is ambiguous, imported from the namespaces or types 'System.IO, Inventor'"
+' even though it compiles fine on its own. Always write System.IO.File /
+' System.IO.Path in full. Leaving the import out means the test build fails too,
+' rather than passing something Inventor will reject.
 
 '------------------------------------------------------------------------------
 ' Minimal RFC-4180-ish CSV reader.  Handles quoted fields and skips '#' comments.
@@ -20,11 +28,11 @@ Public Class CsvTable
     Public Rows As List(Of String()) = New List(Of String())
 
     Public Shared Function Load(ByVal path As String) As CsvTable
-        If Not File.Exists(path) Then
+        If Not System.IO.File.Exists(path) Then
             Throw New Exception("Rule table not found: " & path)
         End If
         Dim t As New CsvTable()
-        For Each raw As String In File.ReadAllLines(path)
+        For Each raw As String In System.IO.File.ReadAllLines(path)
             Dim line As String = raw.Trim()
             If line.Length = 0 Then Continue For
             If line.StartsWith("#") Then Continue For
@@ -168,9 +176,9 @@ Public Class RuleTables
 
     Public Shared Function Load(ByVal rulesDir As String) As RuleTables
         Dim rt As New RuleTables()
-        rt.walls = CsvTable.Load(Path.Combine(rulesDir, "table_1_6_walls.csv"))
-        rt.floors = CsvTable.Load(Path.Combine(rulesDir, "table_1_7_floors.csv"))
-        rt.Constraints = StudConstraints.Load(Path.Combine(rulesDir, "global_constraints.csv"))
+        rt.walls = CsvTable.Load(System.IO.Path.Combine(rulesDir, "table_1_6_walls.csv"))
+        rt.floors = CsvTable.Load(System.IO.Path.Combine(rulesDir, "table_1_7_floors.csv"))
+        rt.Constraints = StudConstraints.Load(System.IO.Path.Combine(rulesDir, "global_constraints.csv"))
         Return rt
     End Function
 

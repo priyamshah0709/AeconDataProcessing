@@ -169,6 +169,7 @@ check after transcribing a new drawing revision.
 
 | Symptom | Cause and fix |
 |---|---|
+| `'File' is ambiguous, imported from the namespaces or types 'System.IO, Inventor'` | A `.vb` engine file uses a bare `File.` / `Path.` / `Directory.`. iLogic compiles AddVbFile sources under its own global imports, and the Inventor API has its own `File` and `Path` types. Write `System.IO.File` / `System.IO.Path` in full. The shipped files already do; if you see this, one was edited. `tests/run-tests.sh` catches it. |
 | `Error in rule program format: The rule must contain: Sub Main() ... End Sub` | The rule lost its `Sub Main()` wrapper. iLogic auto-wraps loose statements ONLY while a rule declares no `Sub`/`Function` of its own; both of these rules declare helpers, so both need an explicit `Sub Main()` with the helpers *after* `End Sub`. Both shipped files already have it — if you see this, the file was edited. `tests/ilogic-syntax/wrap_rules.py` checks for it. |
 | `Error on line 1: file not found` or `AddVbFile` failure | The path in the `AddVbFile` lines does not exist on this machine. Fix step 3. Check the zip was unblocked (step 1). |
 | `Rule table not found: ...global_constraints.csv` | `STUD_RULES_DIR` points somewhere wrong, or the `rules\` folder was not copied. |
