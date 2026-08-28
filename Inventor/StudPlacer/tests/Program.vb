@@ -624,10 +624,46 @@ Module StudPlacerTests
            msgPartial.IndexOf("Folder exists, but these files are missing:") >= 0)
         System.IO.Directory.Delete(partialDir, True)
 
-        Console.WriteLine("   sample message:")
-        For Each ln As String In msgMissing.Replace(vbCr, "").Split(CChar(vbLf))
+
+        ' Simulate the real-world slip: tables sitting beside the install rather
+        ' than in <root>\rules. The message must point at where they actually are.
+        Dim fakeRoot As String = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "studplacer_findtest")
+        If System.IO.Directory.Exists(fakeRoot) Then System.IO.Directory.Delete(fakeRoot, True)
+        Dim strayDir As String = System.IO.Path.Combine(fakeRoot, "package", "rules")
+        System.IO.Directory.CreateDirectory(strayDir)
+        For Each f As String In RuleTables.RequiredFiles
+            System.IO.File.Copy(System.IO.Path.Combine(rulesDir, f), System.IO.Path.Combine(strayDir, f), True)
+        Next
+        Dim wantedDir As String = System.IO.Path.Combine(fakeRoot, "rules")
+
+        Dim cands As List(Of String) = RuleTables.FindCandidates(wantedDir)
+        Ok("discovery finds a misplaced rules folder", cands.Contains(strayDir))
+
+        Dim msgFound As String = ""
+        Try
+            RuleTables.Load(wantedDir)
+        Catch ex As Exception
+            msgFound = ex.Message
+        End Try
+        Ok("message reports where the tables actually are", msgFound.IndexOf(strayDir) >= 0)
+        Ok("message offers the STUD_RULES_DIR route", msgFound.IndexOf("STUD_RULES_DIR on the assembly to that path") >= 0)
+
+        ' Nothing nearby -> no misleading suggestion block.
+        Dim lonely As String = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "studplacer_lonely", "rules")
+        Dim msgLonely As String = ""
+        Try
+            RuleTables.Load(lonely)
+        Catch ex As Exception
+            msgLonely = ex.Message
+        End Try
+        Ok("no suggestion when nothing is found", msgLonely.IndexOf("Found the code tables") < 0)
+        Ok("discovery never throws on a bogus path", RuleTables.FindCandidates("Z:\no\such\place").Count >= 0)
+        Console.WriteLine("   message when the tables are found elsewhere:")
+        For Each ln As String In msgFound.Replace(vbCr, "").Split(CChar(vbLf))
             Console.WriteLine("     | " & ln)
         Next
+        System.IO.Directory.Delete(fakeRoot, True)
+
 
         '--------------------------------------------------------------------
         Console.WriteLine()

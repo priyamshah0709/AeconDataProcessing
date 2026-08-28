@@ -177,6 +177,72 @@ Public Class RuleTables
     Public Shared ReadOnly RequiredFiles As String() =
         New String() {"table_1_6_walls.csv", "table_1_7_floors.csv", "global_constraints.csv"}
 
+    ''' <summary>Does this folder hold all three code tables?</summary>
+    Private Shared Function HasAllTables(ByVal dir As String) As Boolean
+        For Each f As String In RequiredFiles
+            If Not System.IO.File.Exists(System.IO.Path.Combine(dir, f)) Then Return False
+        Next
+        Return True
+    End Function
+
+    Private Shared Function ParentOf(ByVal dir As String) As String
+        Try
+            Dim p As String = System.IO.Path.GetDirectoryName(dir.TrimEnd("\"c, "/"c))
+            If p Is Nothing Then Return ""
+            Return p
+        Catch ex As Exception
+            Return ""
+        End Try
+    End Function
+
+    Private Shared Sub SearchDir(ByVal dir As String, ByVal depth As Integer, ByVal hits As List(Of String))
+        If hits.Count >= 5 Then Return
+        If HasAllTables(dir) AndAlso Not hits.Contains(dir) Then hits.Add(dir)
+        If depth <= 0 Then Return
+        Try
+            For Each sub_ As String In System.IO.Directory.GetDirectories(dir)
+                SearchDir(sub_, depth - 1, hits)
+            Next
+        Catch ex As Exception
+            ' Unreadable folder -- skip it, this is a best-effort hint.
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Best-effort hunt for a folder that actually holds the code tables, used
+    ''' only to make the not-found message actionable. Nothing is ever loaded
+    ''' from a discovered path: the operator has to point STUD_RULES_DIR at it,
+    ''' so the schedule always records a rules folder somebody chose.
+    ''' </summary>
+    Public Shared Function FindCandidates(ByVal configured As String) As List(Of String)
+        Dim hits As New List(Of String)
+        Try
+            ' Walk up to the nearest ancestor that exists.
+            Dim probe As String = configured
+            Dim guard As Integer = 0
+            While probe <> "" AndAlso Not System.IO.Directory.Exists(probe) AndAlso guard < 8
+                probe = ParentOf(probe)
+                guard += 1
+            End While
+            If probe = "" OrElse Not System.IO.Directory.Exists(probe) Then Return hits
+
+            ' That folder and anything two levels inside it.
+            SearchDir(probe, 2, hits)
+
+            ' Then a few levels up, one level deep each -- catches the tables
+            ' having landed beside the install rather than inside it.
+            Dim up As String = probe
+            For i As Integer = 1 To 3
+                up = ParentOf(up)
+                If up = "" OrElse Not System.IO.Directory.Exists(up) Then Exit For
+                SearchDir(up, 1, hits)
+            Next
+        Catch ex As Exception
+            ' Never let the hint search break the error report it is decorating.
+        End Try
+        Return hits
+    End Function
+
     ''' <summary>
     ''' Load all three code tables from a folder.
     '''
@@ -223,6 +289,19 @@ Public Class RuleTables
             sb.AppendLine()
             sb.AppendLine("If the tables live somewhere else, set the STUD_RULES_DIR parameter")
             sb.AppendLine("on the assembly to point at them.")
+
+            Dim found As List(Of String) = FindCandidates(rulesDir)
+            If found.Count > 0 Then
+                sb.AppendLine()
+                sb.AppendLine("--------------------------------------------------------------")
+                sb.AppendLine("Found the code tables already sitting here:")
+                For Each c As String In found
+                    sb.AppendLine("    " & c)
+                Next
+                sb.AppendLine()
+                sb.AppendLine("Either move that folder to the location above, or set")
+                sb.AppendLine("STUD_RULES_DIR on the assembly to that path.")
+            End If
             Throw New Exception(sb.ToString())
         End If
 
