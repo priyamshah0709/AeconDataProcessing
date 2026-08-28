@@ -658,6 +658,50 @@ Module StudPlacerTests
         End Try
         Ok("no suggestion when nothing is found", msgLonely.IndexOf("Found the code tables") < 0)
         Ok("discovery never throws on a bogus path", RuleTables.FindCandidates("Z:\no\such\place").Count >= 0)
+
+        ' Path walk: build a real tree, ask for a path one level too deep, and
+        ' check the message pinpoints the break AND lists the real contents.
+        Dim walkRoot As String = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "studplacer_walk")
+        If System.IO.Directory.Exists(walkRoot) Then System.IO.Directory.Delete(walkRoot, True)
+        System.IO.Directory.CreateDirectory(System.IO.Path.Combine(walkRoot, "Inventor", "StudPlacer", "vb"))
+        System.IO.Directory.CreateDirectory(System.IO.Path.Combine(walkRoot, "Inventor", "StudPlacer", "ilogic"))
+        Dim askedFor As String = System.IO.Path.Combine(walkRoot, "Inventor", "StudPlacer", "rules")
+        Dim walk As String = RuleTables.DescribePath(askedFor)
+        Ok("walk marks the existing ancestors", walk.IndexOf("exists   ") >= 0)
+        Ok("walk pinpoints where it breaks", walk.IndexOf("stops here") >= 0)
+        Ok("walk names the missing segment", walk.IndexOf(askedFor) >= 0)
+        Ok("walk lists what is actually there", walk.IndexOf("[dir]  vb") >= 0 AndAlso walk.IndexOf("[dir]  ilogic") >= 0)
+        Dim walkMsg As String = ""
+        Try
+            RuleTables.Load(askedFor)
+        Catch ex As Exception
+            walkMsg = ex.Message
+        End Try
+        Ok("load error embeds the path walk", walkMsg.IndexOf("Walking that path one folder at a time") >= 0)
+
+        Console.WriteLine("   path-walk diagnostic:")
+        For Each ln As String In walk.Replace(vbCr, "").Split(CChar(vbLf))
+            If ln.Trim() <> "" Then Console.WriteLine("     | " & ln)
+        Next
+
+        ' Hidden-extension trap: Explorer shows "x.csv", the file is "x.csv.txt".
+        Dim trapDir As String = System.IO.Path.Combine(walkRoot, "traprules")
+        System.IO.Directory.CreateDirectory(trapDir)
+        For Each f As String In RuleTables.RequiredFiles
+            System.IO.File.Copy(System.IO.Path.Combine(rulesDir, f), System.IO.Path.Combine(trapDir, f), True)
+        Next
+        System.IO.File.Move(System.IO.Path.Combine(trapDir, "table_1_6_walls.csv"),
+                            System.IO.Path.Combine(trapDir, "table_1_6_walls.csv.txt"))
+        Dim trapMsg As String = ""
+        Try
+            RuleTables.Load(trapDir)
+        Catch ex As Exception
+            trapMsg = ex.Message
+        End Try
+        Ok("extension trap is named", trapMsg.IndexOf("table_1_6_walls.csv.txt") >= 0)
+        Ok("extension trap is explained", trapMsg.IndexOf("hides known file extensions") >= 0)
+        System.IO.Directory.Delete(walkRoot, True)
+
         Console.WriteLine("   message when the tables are found elsewhere:")
         For Each ln As String In msgFound.Replace(vbCr, "").Split(CChar(vbLf))
             Console.WriteLine("     | " & ln)

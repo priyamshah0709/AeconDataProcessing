@@ -177,6 +177,120 @@ Public Class RuleTables
     Public Shared ReadOnly RequiredFiles As String() =
         New String() {"table_1_6_walls.csv", "table_1_7_floors.csv", "global_constraints.csv"}
 
+    ''' <summary>
+    ''' Walk a path one segment at a time and report where it stops existing,
+    ''' then list what IS in the deepest folder that does.
+    '''
+    ''' "The folder is definitely there" and Directory.Exists disagreeing is
+    ''' almost always a typo, a doubled space, an extra nested level, or a
+    ''' different drive. Printing the actual tree settles it in one run instead
+    ''' of a round of guesses.
+    ''' </summary>
+    Public Shared Function DescribePath(ByVal target As String) As String
+        Dim sb As New System.Text.StringBuilder()
+        Try
+            Dim t As String = target.TrimEnd("\"c, "/"c)
+            Dim segs As New List(Of String)
+            Dim cursor As String
+
+            ' Split on both separators. Inventor always hands us Windows paths,
+            ' but the regression suite runs this on macOS too and a backslash-only
+            ' split would silently collapse the whole path into one segment --
+            ' making the diagnostic look like it worked while testing nothing.
+            Dim bits As String() = t.Replace("/"c, "\"c).Split("\"c)
+
+            If t.StartsWith("\\") Then
+                ' UNC: \\server\share is the smallest meaningful root.
+                Dim unc As String() = t.Substring(2).Replace("/"c, "\"c).Split("\"c)
+                If unc.Length < 2 Then Return ""
+                cursor = "\\" & unc(0) & "\" & unc(1)
+                segs.Add(cursor)
+                For i As Integer = 2 To unc.Length - 1
+                    cursor = cursor & "\" & unc(i)
+                    segs.Add(cursor)
+                Next
+            Else
+                If bits.Length = 0 Then Return ""
+                Dim first As Integer
+                If bits(0) = "" Then
+                    cursor = System.IO.Path.DirectorySeparatorChar.ToString()   ' POSIX root
+                    first = 1
+                Else
+                    cursor = bits(0) & System.IO.Path.DirectorySeparatorChar    ' drive root
+                    first = 1
+                End If
+                segs.Add(cursor)
+                For i As Integer = first To bits.Length - 1
+                    If bits(i) = "" Then Continue For
+                    cursor = System.IO.Path.Combine(cursor, bits(i))
+                    segs.Add(cursor)
+                Next
+            End If
+
+            sb.AppendLine("Walking that path one folder at a time:")
+            Dim deepest As String = ""
+            For Each seg As String In segs
+                If System.IO.Directory.Exists(seg) Then
+                    sb.AppendLine("    exists   " & seg)
+                    deepest = seg
+                Else
+                    sb.AppendLine("    MISSING  " & seg & "   <-- stops here")
+                    Exit For
+                End If
+            Next
+
+            If deepest <> "" Then
+                sb.AppendLine()
+                sb.AppendLine("Deepest folder that does exist:")
+                sb.AppendLine("    " & deepest)
+                sb.AppendLine("and it contains:")
+                Dim shown As Integer = 0
+                Try
+                    For Each d As String In System.IO.Directory.GetDirectories(deepest)
+                        If shown >= 25 Then
+                            sb.AppendLine("    ... (more not listed)")
+                            Exit For
+                        End If
+                        sb.AppendLine("    [dir]  " & System.IO.Path.GetFileName(d))
+                        shown += 1
+                    Next
+                    For Each fl As String In System.IO.Directory.GetFiles(deepest)
+                        If shown >= 25 Then Exit For
+                        sb.AppendLine("           " & System.IO.Path.GetFileName(fl))
+                        shown += 1
+                    Next
+                    If shown = 0 Then sb.AppendLine("    (empty)")
+                Catch ex As Exception
+                    sb.AppendLine("    (could not be listed: " & ex.Message & ")")
+                End Try
+                sb.AppendLine()
+                sb.AppendLine("Compare that against the path above -- a doubled space, an extra")
+                sb.AppendLine("nested folder or a different drive is the usual explanation.")
+            End If
+        Catch ex As Exception
+            Return ""
+        End Try
+        Return sb.ToString()
+    End Function
+
+    ''' <summary>
+    ''' Windows hides known extensions in Explorer, so a file saved from Notepad
+    ''' as "table_1_6_walls.csv" can really be "table_1_6_walls.csv.txt" and still
+    ''' look right. Worth naming explicitly rather than just "file missing".
+    ''' </summary>
+    Private Shared Function ExtensionTrap(ByVal dir As String, ByVal wanted As String) As String
+        Try
+            For Each fl As String In System.IO.Directory.GetFiles(dir, wanted & "*")
+                Dim leaf As String = System.IO.Path.GetFileName(fl)
+                If Not String.Equals(leaf, wanted, StringComparison.OrdinalIgnoreCase) Then
+                    Return leaf
+                End If
+            Next
+        Catch ex As Exception
+        End Try
+        Return ""
+    End Function
+
     ''' <summary>Does this folder hold all three code tables?</summary>
     Private Shared Function HasAllTables(ByVal dir As String) As Boolean
         For Each f As String In RequiredFiles
@@ -267,11 +381,28 @@ Public Class RuleTables
             sb.AppendLine()
             If Not dirExists Then
                 sb.AppendLine("That folder does not exist.")
+                sb.AppendLine()
+                sb.Append(DescribePath(rulesDir))
             Else
                 sb.AppendLine("Folder exists, but these files are missing:")
                 For Each f As String In missing
-                    sb.AppendLine("    " & f)
+                    Dim trap As String = ExtensionTrap(rulesDir, f)
+                    If trap <> "" Then
+                        sb.AppendLine("    " & f & "   <-- found """ & trap & """ instead")
+                    Else
+                        sb.AppendLine("    " & f)
+                    End If
                 Next
+                Dim anyTrap As Boolean = False
+                For Each f As String In missing
+                    If ExtensionTrap(rulesDir, f) <> "" Then anyTrap = True
+                Next
+                If anyTrap Then
+                    sb.AppendLine()
+                    sb.AppendLine("Windows hides known file extensions in Explorer, so a file saved")
+                    sb.AppendLine("from Notepad can look correct while really being .csv.txt. Turn on")
+                    sb.AppendLine("View > File name extensions in Explorer and rename it.")
+                End If
             End If
             sb.AppendLine()
             sb.AppendLine("The install root needs BOTH of these folders side by side:")
