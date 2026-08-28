@@ -75,6 +75,19 @@ string — it cannot read a parameter. That's why the path appears twice.
 > rule declares no subroutines of its own; the moment it does, an explicit
 > `Sub Main()` becomes mandatory.
 
+### Verify the install before going further
+
+Run the same script with the root you used — it rewrites nothing when the path
+already matches, and reports which of the nine expected files are present:
+
+```powershell
+.\tools\set-install-path.ps1 -Root "C:\Inventor Project\Inventor\StudPlacer"
+```
+
+`parts\Stud_19x157.ipt` will read MISSING until you do step 2. Everything else
+should say OK — the rules fail at run time otherwise, and the most common cause
+is copying `ilogic\` and `vb\` but forgetting `rules\`.
+
 ## 4. Register the rules with iLogic
 
 In Inventor: **Tools → Options → iLogic Configuration → External Rule
@@ -172,7 +185,7 @@ check after transcribing a new drawing revision.
 | `'File' is ambiguous, imported from the namespaces or types 'System.IO, Inventor'` | A `.vb` engine file uses a bare `File.` / `Path.` / `Directory.`. iLogic compiles AddVbFile sources under its own global imports, and the Inventor API has its own `File` and `Path` types. Write `System.IO.File` / `System.IO.Path` in full. The shipped files already do; if you see this, one was edited. `tests/run-tests.sh` catches it. |
 | `Error in rule program format: The rule must contain: Sub Main() ... End Sub` | The rule lost its `Sub Main()` wrapper. iLogic auto-wraps loose statements ONLY while a rule declares no `Sub`/`Function` of its own; both of these rules declare helpers, so both need an explicit `Sub Main()` with the helpers *after* `End Sub`. Both shipped files already have it — if you see this, the file was edited. `tests/ilogic-syntax/wrap_rules.py` checks for it. |
 | `Error on line 1: file not found` or `AddVbFile` failure | The path in the `AddVbFile` lines does not exist on this machine. Fix step 3. Check the zip was unblocked (step 1). |
-| `Rule table not found: ...global_constraints.csv` | `STUD_RULES_DIR` points somewhere wrong, or the `rules\` folder was not copied. |
+| `StudPlacer code tables not found` | The `rules\` folder is missing or incomplete — copying `ilogic\` and `vb\` but not `rules\` is the usual cause. The message names the folder searched, which files are absent, and where to put them. Run `tools\set-install-path.ps1 -Root "<root>"` to check the whole layout at once. |
 | `Parameter STUD_COMPONENT is required` | The parameter is missing or misspelled, or it was added to a **part** rather than the assembly. |
 | `No Table 1-6 band for component 'X' at elevation Y` | `STUD_COMPONENT` is not one of the six recognised values, or `STUD_ELEV_M` is outside the elevation bands on G103. |
 | `STUD_WSC_MM must be > 0 for FLAT geometry` | A required parameter is missing, so it defaulted to 0. Compare against the sample parameter list. |

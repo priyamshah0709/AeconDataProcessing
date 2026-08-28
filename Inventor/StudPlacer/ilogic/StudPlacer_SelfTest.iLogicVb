@@ -41,7 +41,15 @@ Sub Main()
     Dim pass As Integer = 0
     Dim fail As Integer = 0
 
-    Dim t As RuleTables = RuleTables.Load(rulesDir)
+    ' Load the code tables first and on its own, so an install problem shows the
+    ' actionable message rather than a raw exception dialog.
+    Dim t As RuleTables
+    Try
+        t = RuleTables.Load(rulesDir)
+    Catch ex As Exception
+        MsgBox(ex.Message, vbCritical, "StudPlacer self-test - install problem")
+        Return
+    End Try
 
     '--- Table 1-6, walls ---------------------------------------------------------
     Dim s As StudSpec

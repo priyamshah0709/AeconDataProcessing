@@ -174,7 +174,58 @@ Public Class RuleTables
     Private floors As CsvTable
     Public Constraints As StudConstraints
 
+    Public Shared ReadOnly RequiredFiles As String() =
+        New String() {"table_1_6_walls.csv", "table_1_7_floors.csv", "global_constraints.csv"}
+
+    ''' <summary>
+    ''' Load all three code tables from a folder.
+    '''
+    ''' Everything is checked BEFORE anything is parsed, so a half-copied install
+    ''' reports the whole picture at once instead of one missing file per run.
+    ''' </summary>
     Public Shared Function Load(ByVal rulesDir As String) As RuleTables
+        Dim missing As New List(Of String)
+        Dim dirExists As Boolean = System.IO.Directory.Exists(rulesDir)
+        If dirExists Then
+            For Each f As String In RequiredFiles
+                If Not System.IO.File.Exists(System.IO.Path.Combine(rulesDir, f)) Then missing.Add(f)
+            Next
+        End If
+
+        If (Not dirExists) OrElse missing.Count > 0 Then
+            Dim sb As New System.Text.StringBuilder()
+            sb.AppendLine("StudPlacer code tables not found.")
+            sb.AppendLine()
+            sb.AppendLine("Looked in:")
+            sb.AppendLine("    " & rulesDir)
+            sb.AppendLine()
+            If Not dirExists Then
+                sb.AppendLine("That folder does not exist.")
+            Else
+                sb.AppendLine("Folder exists, but these files are missing:")
+                For Each f As String In missing
+                    sb.AppendLine("    " & f)
+                Next
+            End If
+            sb.AppendLine()
+            sb.AppendLine("The install root needs BOTH of these folders side by side:")
+            sb.AppendLine("    <root>\vb\       the engine   (this one resolved, or you would")
+            sb.AppendLine("                      not have got this far -- AddVbFile found it)")
+            sb.AppendLine("    <root>\rules\    the code tables")
+            sb.AppendLine()
+            sb.AppendLine("Copy the rules folder out of the StudPlacer package to:")
+            sb.AppendLine("    " & rulesDir)
+            sb.AppendLine()
+            sb.AppendLine("It should end up containing exactly:")
+            For Each f As String In RequiredFiles
+                sb.AppendLine("    " & f)
+            Next
+            sb.AppendLine()
+            sb.AppendLine("If the tables live somewhere else, set the STUD_RULES_DIR parameter")
+            sb.AppendLine("on the assembly to point at them.")
+            Throw New Exception(sb.ToString())
+        End If
+
         Dim rt As New RuleTables()
         rt.walls = CsvTable.Load(System.IO.Path.Combine(rulesDir, "table_1_6_walls.csv"))
         rt.floors = CsvTable.Load(System.IO.Path.Combine(rulesDir, "table_1_7_floors.csv"))

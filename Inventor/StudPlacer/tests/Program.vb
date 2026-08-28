@@ -585,6 +585,50 @@ Module StudPlacerTests
             System.Threading.Thread.CurrentThread.CurrentCulture = prior
         End Try
 
+
+        '--------------------------------------------------------------------
+        Grp("Missing-install diagnostics")
+        Dim badDir As String = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "studplacer_no_such_rules")
+        If System.IO.Directory.Exists(badDir) Then System.IO.Directory.Delete(badDir, True)
+        Dim msgMissing As String = ""
+        Try
+            RuleTables.Load(badDir)
+        Catch ex As Exception
+            msgMissing = ex.Message
+        End Try
+        Ok("missing rules dir raises", msgMissing.Length > 0)
+        Ok("message names the folder searched", msgMissing.IndexOf(badDir) >= 0)
+        Ok("message says the folder does not exist", msgMissing.IndexOf("does not exist") >= 0)
+        Ok("message names all three tables",
+           msgMissing.IndexOf("table_1_6_walls.csv") >= 0 AndAlso
+           msgMissing.IndexOf("table_1_7_floors.csv") >= 0 AndAlso
+           msgMissing.IndexOf("global_constraints.csv") >= 0)
+        Ok("message points at STUD_RULES_DIR", msgMissing.IndexOf("STUD_RULES_DIR") >= 0)
+
+        ' Folder present but a table missing -- the half-copied install case.
+        Dim partialDir As String = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "studplacer_partial_rules")
+        If System.IO.Directory.Exists(partialDir) Then System.IO.Directory.Delete(partialDir, True)
+        System.IO.Directory.CreateDirectory(partialDir)
+        System.IO.File.Copy(System.IO.Path.Combine(rulesDir, "global_constraints.csv"),
+                            System.IO.Path.Combine(partialDir, "global_constraints.csv"), True)
+        Dim msgPartial As String = ""
+        Try
+            RuleTables.Load(partialDir)
+        Catch ex As Exception
+            msgPartial = ex.Message
+        End Try
+        Ok("partial install raises", msgPartial.Length > 0)
+        Ok("partial message says the folder exists", msgPartial.IndexOf("Folder exists") >= 0)
+        Ok("partial message lists only what is missing",
+           msgPartial.IndexOf("table_1_6_walls.csv") >= 0 AndAlso
+           msgPartial.IndexOf("Folder exists, but these files are missing:") >= 0)
+        System.IO.Directory.Delete(partialDir, True)
+
+        Console.WriteLine("   sample message:")
+        For Each ln As String In msgMissing.Replace(vbCr, "").Split(CChar(vbLf))
+            Console.WriteLine("     | " & ln)
+        Next
+
         '--------------------------------------------------------------------
         Console.WriteLine()
         Console.WriteLine("=====================================================")

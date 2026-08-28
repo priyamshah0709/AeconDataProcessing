@@ -49,12 +49,11 @@ foreach ($f in $files) {
 }
 if (-not $oldRoot) { throw "Could not find the AddVbFile anchor; has the rule header been edited?" }
 
-if ($oldRoot -ceq $newRoot) {
-    Write-Host "already set to `"$newRoot`" -- nothing to do."
-    exit 0
-}
-
 $total = 0
+if ($oldRoot -ceq $newRoot) {
+    Write-Host "already set to `"$newRoot`" -- no rewrite needed."
+    Write-Host "Verifying the layout anyway; run this any time to check an install."
+} else {
 foreach ($f in $files) {
     $text = Get-Content $f.FullName -Raw
     $n = ([regex]::Matches($text, [regex]::Escape($oldRoot))).Count
@@ -72,13 +71,15 @@ Write-Host ""
 Write-Host "  from: `"$oldRoot`""
 Write-Host "    to: `"$newRoot`""
 Write-Host "  $total path(s) updated across $($files.Count) rule file(s)."
+}
 Write-Host ""
 
 # Verify the layout actually exists, so a typo surfaces here rather than as an
 # AddVbFile failure inside the rule editor.
 Write-Host "Checking the expected layout:"
 $missing = 0
-foreach ($rel in @('vb\StudRules.vb', 'vb\StudArray.vb', 'vb\StudPlacer.vb',
+foreach ($rel in @('ilogic\StudPlacer_Main.iLogicVb', 'ilogic\StudPlacer_SelfTest.iLogicVb',
+                   'vb\StudRules.vb', 'vb\StudArray.vb', 'vb\StudPlacer.vb',
                    'rules\global_constraints.csv', 'rules\table_1_6_walls.csv',
                    'rules\table_1_7_floors.csv', 'parts\Stud_19x157.ipt')) {
     $p = Join-Path $newRoot $rel

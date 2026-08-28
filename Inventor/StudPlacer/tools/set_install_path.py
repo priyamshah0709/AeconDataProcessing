@@ -59,11 +59,12 @@ def main(argv):
         print("could not find the AddVbFile anchor; has the rule header been edited?")
         return 1
 
-    if old_root == new_root:
-        print(f'already set to "{new_root}" -- nothing to do.')
-        return 0
-
     total = 0
+    if old_root == new_root:
+        print(f'already set to "{new_root}" -- no rewrite needed.')
+        print("Verifying the layout anyway; run this any time to check an install.")
+        files = []
+
     for f in files:
         path = os.path.join(ILOGIC, f)
         text = open(path, encoding="utf-8").read()
@@ -73,16 +74,32 @@ def main(argv):
             total += n
         print(f"  {f}: {n} occurrence(s)")
 
-    print()
-    print(f'  from: "{old_root}"')
-    print(f'    to: "{new_root}"')
-    print(f"  {total} path(s) updated across {len(files)} rule file(s).")
+    if files:
+        print()
+        print(f'  from: "{old_root}"')
+        print(f'    to: "{new_root}"')
+        print(f"  {total} path(s) updated across {len(files)} rule file(s).")
+
     print()
     print("Expected layout under that root:")
-    for sub in ("vb\\StudRules.vb", "vb\\StudArray.vb", "vb\\StudPlacer.vb",
+    missing = 0
+    on_windows = os.sep == "\\"
+    for sub in ("ilogic\\StudPlacer_Main.iLogicVb", "ilogic\\StudPlacer_SelfTest.iLogicVb",
+                "vb\\StudRules.vb", "vb\\StudArray.vb", "vb\\StudPlacer.vb",
                 "rules\\global_constraints.csv", "rules\\table_1_6_walls.csv",
                 "rules\\table_1_7_floors.csv", "parts\\Stud_19x157.ipt"):
-        print("  " + new_root + "\\" + sub)
+        full = new_root + "\\" + sub
+        if not on_windows:
+            print("  " + full)          # cannot check a Windows path from here
+        elif os.path.exists(full):
+            print("  OK      " + full)
+        else:
+            print("  MISSING " + full)
+            missing += 1
+    if on_windows and missing:
+        print()
+        print(f"{missing} item(s) not found. The rules will fail until they exist.")
+        print(r"parts\Stud_19x157.ipt is the one you create yourself -- INVENTOR_SETUP.md step 2.")
     return 0
 
 
