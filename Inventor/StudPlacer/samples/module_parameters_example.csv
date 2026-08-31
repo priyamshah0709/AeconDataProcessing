@@ -1,0 +1,36 @@
+# Reference set of the STUD_* user parameters a module template must carry.
+# Create these as Inventor USER PARAMETERS on the module ASSEMBLY.
+# Numeric ones may be unitless (plain mm / deg) or real length/angle parameters;
+# the rule normalises both. TYPE column is for the template author only.
+NAME,TYPE,APPLIES_TO,EXAMPLE,NOTES
+STUD_COMPONENT,Text,all,SCCV_WALL,"SCCV_WALL | RB_OUTER_WALL | RPV_PEDESTAL_WALL | INNER_BASEMAT | OUTER_BASEMAT | INTERIOR_FLOOR"
+STUD_GEOMETRY,Text,all,FLAT,FLAT | CURVED_INNER | CURVED_OUTER | ANNULAR
+STUD_MODULE_ID,Text,all,U71-SCCV-102005,Defaults to the file name
+STUD_ELEV_M,Number,walls,-30.5,Metres. Selects the Table 1-6 elevation band
+STUD_WSC_MM,Number,FLAT,609.6,Diaphragm pitch. Derived from geometry for CURVED/ANNULAR
+STUD_PLATE_WIDTH_MM,Number,FLAT,2438.4,Transverse extent of the faceplate
+STUD_PLATE_LENGTH_MM,Number,"FLAT, CURVED",3600.0,Longitudinal extent (up the wall / along the channel)
+STUD_DATUM_OFFSET_MM,Number,FLAT,0.0,Offset of the first diaphragm from Y = 0
+STUD_RADIUS_MM,Number,CURVED,9945.0,Faceplate radius
+STUD_SPAN_DEG,Number,"CURVED, ANNULAR",10.0,Angular extent of the module
+STUD_DATUM_DEG,Number,"CURVED, ANNULAR",122.75,Datum azimuth. Sweep runs negative from here
+STUD_DIAPH_PITCH_DEG,Number,"CURVED, ANNULAR",3.5,Angular diaphragm pitch
+STUD_R_INNER_MM,Number,ANNULAR,3000.0,Inner radius of the ring
+STUD_R_OUTER_MM,Number,ANNULAR,17000.0,Outer radius of the ring
+STUD_FACE_OFFSET_MM,Number,all,0.0,Faceplate inner face offset along the stud axis
+STUD_DIR_SIGN,Number,all,1,+1 or -1. Flips the stud direction along the face normal
+STUD_TERM_START,Text,all,LANDING_PLATE,LANDING_PLATE | COVER_PLATE | SPLICE | FREE_EDGE
+STUD_TERM_END,Text,all,SPLICE,Same options as STUD_TERM_START
+STUD_SPLICE_ID_START,Text,all,,"A or B to invoke the 86.9 / 76.2 mm allowances, else blank"
+STUD_SPLICE_ID_END,Text,all,B,Same
+STUD_DATUM_ALIGN,Text,all,DIAPHRAGM,DIAPHRAGM | STUD
+STUD_TRANSVERSE_MODE,Text,all,EVEN,"EVEN | RADIAL_CLEARANCE (T1-7 n3, 152.4 mm off the diaphragms)"
+STUD_DENSITY_MAKEUP,Text,floors,TRUE,TRUE runs the T1-7 n7/n8 back-fill
+STUD_PLACE_GEOMETRY,Text,all,TRUE,FALSE writes the CSVs without touching the model
+STUD_MAX_OCCURRENCES,Number,all,4000,Guard. Placement is skipped above this count
+STUD_RULES_DIR,Text,all,C:\Aecon\StudPlacer\rules,Where the code tables live
+STUD_PART_PATH,Text,all,C:\Aecon\StudPlacer\parts\Stud_19x157.ipt,Stud part. Axis along its own +Z, base at origin
+STUD_OUTPUT_DIR,Text,all,,Defaults to the assembly folder
+STUD_EXCLUSIONS_CSV,Text,all,,Optional per-module keep-out file
+STUD_PART_NUMBER,Text,all,,For the legacy Studly CSV header
+STUD_PART_DESCRIPTION,Text,all,,For the legacy Studly CSV header

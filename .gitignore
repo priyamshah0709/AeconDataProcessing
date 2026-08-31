@@ -78,3 +78,18 @@ Thumbs.db
 *.csv.tar.lz
 *.csv.tar.lz4
 *.csv.tar.zstd
+# --- StudPlacer (Inventor iLogic tool) ---------------------------------------
+# The blanket *.csv above exists to keep the multi-hundred-MB model extracts out
+# of the repo. StudPlacer's rule tables are the opposite kind of file: small,
+# hand-maintained SOURCE transcribed from drawing 008N9536, and the iLogic
+# engine refuses to start without them. Likewise 'parts/' is ignored above as a
+# Python packaging convention, but here it holds the stud .ipt library.
+#
+# These were silently excluded once already, which is why the tool ran fine
+# locally and failed on a fresh clone with "code tables not found".
+# tools/check_deployable.py now fails the test run if that recurs.
+!Inventor/StudPlacer/rules/
+!Inventor/StudPlacer/rules/*.csv
+!Inventor/StudPlacer/samples/
+!Inventor/StudPlacer/samples/*.csv
+!Inventor/StudPlacer/parts/

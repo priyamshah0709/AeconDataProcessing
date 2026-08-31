@@ -12,6 +12,8 @@ StudPlacer/
 ├── ilogic/         the two rules you load into Inventor
 ├── tools/          set-install-path.ps1 — retarget the rules after a move
 │                   check_rule_tables.py — zero-dependency CSV linter
+│                   check_deployable.py  — would a fresh clone run?
+├── parts/          the stud .ipt library (you model these; see parts/README.md)
 ├── tests/          compiles and runs the real engine; compile-checks the rules
 └── samples/        example exclusion file + the full parameter reference
 ```
@@ -130,10 +132,11 @@ tests/run-tests.sh        # macOS / Linux
 tests\run-tests.cmd       # Windows   (needs: winget install Microsoft.DotNet.SDK.8)
 ```
 
-Three stages, all green:
+Four stages, all green:
 
 | Stage | What it does |
 |---|---|
+| `tools/check_deployable.py` | **Would a fresh clone actually run?** Asserts every runtime file is committed and not gitignored. This exists because it already failed once: the repo's blanket `*.csv` rule (there to keep multi-hundred-MB model extracts out) silently swallowed `rules/*.csv`, and `parts/` was ignored as a Python packaging convention. Everything worked locally and the Inventor workstation got a package with no code tables. |
 | `tools/check_rule_tables.py` | **141 checks.** Lints the CSVs: required columns, locale-safe numbers, `S_T_DIVISOR == lines + 1` on every row, derived `S_t` matches the value *printed* on G103, floor bands ordered with no gap in `W_sc` coverage, elevation bands contiguous, every constraint the engine looks up exists. Needs nothing but Python — run it after transcribing a new revision. |
 | `tests/ilogic-syntax/` | Compile-checks both `.iLogicVb` files the way iLogic will: strips `AddVbFile`, builds against the engine plus stubbed iLogic globals. Also enforces iLogic's **program-format rule** — a rule that declares any `Sub`/`Function` must have an explicit `Sub Main()` first — which a plain VB compiler accepts but the Inventor rule editor rejects. Catches syntax, bad API member names and format errors *before* the file reaches Inventor. |
 | `tests/` | **132 assertions.** Compiles the actual `vb/*.vb` files that Inventor loads and runs them: every table band, end-to-end flat / curved / radial builds, exclusion geometry, density make-up, matrix orthonormality and the mm→cm conversion, idempotent re-runs, the occurrence guard, CSV round-trips, and locale safety under a comma-decimal culture. |

@@ -1,0 +1,17 @@
+# 008N9536 Rev 11 sheet G103 TABLE 1-7 -- basemat and interior floor stud arrays.
+# Bands are matched on the ACTUAL diaphragm spacing W_sc.
+# Rows must be listed in ascending W_SC_MAX_MM per component. The engine selects the
+# first band whose W_SC_MAX_MM satisfies the CMP comparison against actual W_sc.
+#   CMP = LT  -> band applies when actual <  W_SC_MAX_MM
+#   CMP = LE  -> band applies when actual <= W_SC_MAX_MM
+# STUD_ROWS = 0 means "No Studs" for that band.
+COMPONENT,T_SC_MM,PLATE_GRADE,W_SC_MAX_MM,CMP,STUD_MATERIAL,STUD_LEN_MM,STUD_DIA_MM,STUD_ROWS,S_L_MAX_MM,S_T_DIVISOR,SOURCE
+INNER_BASEMAT,1220,ASME SA537 Class 2,254.0,LT,ASTM A108 Type B,157.2,19.1,0,0,0,G103 T1-6/1-7 Inner Basemat < 10 in -> No Studs
+INNER_BASEMAT,1220,ASME SA537 Class 2,508.0,LE,ASTM A108 Type B,157.2,19.1,1,152.4,2,G103 T1-7 Inner Basemat Wsc 20 in
+INNER_BASEMAT,1220,ASME SA537 Class 2,609.6,LE,ASTM A108 Type B,157.2,19.1,2,254.0,3,G103 T1-7 Inner Basemat Wsc 24 in
+OUTER_BASEMAT,1220,ASTM A572 Grade 65,254.0,LT,ASTM A108 Type B,157.2,19.1,0,0,0,G103 T1-7 Outer Basemat < 10 in -> No Studs
+OUTER_BASEMAT,1220,ASTM A572 Grade 65,508.0,LE,ASTM A108 Type B,157.2,19.1,1,152.4,2,G103 T1-7 Outer Basemat Wsc 20 in
+OUTER_BASEMAT,1220,ASTM A572 Grade 65,609.6,LE,ASTM A108 Type B,157.2,19.1,2,254.0,3,G103 T1-7 Outer Basemat Wsc 24 in
+INTERIOR_FLOOR,609.6,ASTM A572 Grade 65,152.4,LE,ASTM A108 Type B,157.2,19.1,0,0,0,G103 T1-7 Interior Floor Wsc 6 in -> No Studs
+INTERIOR_FLOOR,609.6,ASTM A572 Grade 65,406.4,LE,ASTM A108 Type B,157.2,19.1,1,76.2,2,G103 T1-7 Interior Floor Wsc 16 in
+INTERIOR_FLOOR,609.6,ASTM A572 Grade 65,609.6,LE,ASTM A108 Type B,157.2,19.1,2,76.2,3,G103 T1-7 Interior Floor Wsc 24 in

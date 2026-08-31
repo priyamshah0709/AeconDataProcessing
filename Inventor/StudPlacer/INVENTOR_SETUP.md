@@ -9,6 +9,13 @@ version‑specific.
 
 ---
 
+> **Getting the files from git?** Check `rules/` and `parts/` actually arrived.
+> The repo's `.gitignore` has a blanket `*.csv` (it keeps multi-hundred-MB model
+> extracts out) and ignores `parts/` as a Python packaging convention — both
+> silently excluded StudPlacer files once. Negations are in place now, and
+> `tools/check_deployable.py` fails the test run if it regresses, but a clone
+> taken before that fix will be missing the code tables.
+
 ## 1. Deploy the folder
 
 Copy the whole `StudPlacer` folder to a **local** path on the workstation:

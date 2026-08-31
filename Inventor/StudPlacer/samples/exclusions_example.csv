@@ -1,0 +1,16 @@
+# Per-module keep-out zones, in FACEPLATE SURFACE coordinates (u, v).
+#   FLAT           u = transverse (Y), v = longitudinal (Z)
+#   CURVED_*       u = arc length from the datum angle, v = Z
+#   ANNULAR        u = X, v = Y   (plan view)
+#
+# The engine drops any stud whose BASE EDGE comes within 38.1 mm of a zone
+# boundary (G103 T1-6 n3 / T1-7 n5). EXTRA_CLEAR_MM adds to that where a
+# detail calls for more -- e.g. 60.3 mm at an airlock edge (S505/S508).
+#
+# KIND = CIRCLE uses U,V,R.  KIND = RECT uses U,V,W,H,ANGLE_DEG.
+KIND,U_MM,V_MM,R_MM,W_MM,H_MM,ANGLE_DEG,EXTRA_CLEAR_MM,LABEL
+CIRCLE,304.8,500.0,183.0,0,0,0,0,Concrete flow hole dia 366
+CIRCLE,304.8,1500.0,183.0,0,0,0,0,Concrete flow hole dia 366
+CIRCLE,152.4,300.0,9.5,0,0,0,0,Gripper hole 3/4 in (G101 1.14.5)
+RECT,914.4,1000.0,0,31.8,600.0,0,0,Tie plate 1-1/4 in (G107 n7)
+CIRCLE,1200.0,900.0,366.0,0,0,0,22.2,Airlock sleeve - 60.3 mm clear (S505 n3)

@@ -1,0 +1,9 @@
+# 008N9536 Rev 11 sheet G103 TABLE 1-6 -- DP-SC wall faceplate stud arrays.
+# One row per (component, elevation band). Bands are matched on STUD_ELEV_M.
+# S_T_DIVISOR is always STUD_COLUMNS+1 (diaphragm -> stud .. stud -> diaphragm).
+# The engine computes S_t = actual W_sc / S_T_DIVISOR; the tabulated value is a ceiling check.
+COMPONENT,ELEV_FROM_M,ELEV_TO_M,T_SC_MM,PLATE_GRADE,W_SC_MAX_MM,STUD_MATERIAL,STUD_LEN_MM,STUD_DIA_MM,STUD_COLUMNS,S_L_MAX_MM,S_T_DIVISOR,S_T_MAX_MM,SOURCE
+SCCV_WALL,-35.2,-25.5,1220,ASME SA537 Class 2,609.6,ASTM A108 Type B,157.2,19.1,2,101.6,3,406.4,G103 T1-6 SCCV Wall
+RB_OUTER_WALL,-35.2,-23.9,915,ASTM A572 Grade 65,457.2,ASTM A108 Type B,157.2,19.1,1,76.2,2,381.0,G103 T1-6 RB Outer Wall
+RPV_PEDESTAL_WALL,-34.0,-31.1,1220,ASTM A572 Grade 50,609.6,ASTM A108 Type B,157.2,19.1,2,101.6,3,431.8,G103 T1-6 RPV Pedestal -34.0 to -31.1
+RPV_PEDESTAL_WALL,-31.1,-8.0,1220,ASTM A572 Grade 50,609.6,ASTM A108 Type B,157.2,19.1,2,203.2,3,431.8,G103 T1-6 RPV Pedestal -31.1 to -8.0 (sheet shows imperial typo [-114.6'])
