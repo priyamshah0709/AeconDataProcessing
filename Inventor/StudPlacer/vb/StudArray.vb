@@ -139,6 +139,16 @@ Public Class ModuleInput
     Public StudDirSign As Double = 1.0
     Public FaceOffsetMm As Double = 0.0
     Public DensityMakeup As Boolean = True
+
+    ' Module datum expressed in ASSEMBLY coordinates. For ANNULAR this is the
+    ' ring centre -- the axis the basemat rings are struck from. It exists for
+    ' geolocated models, where the assembly origin is a plant datum rather than
+    ' the building centreline; leaving it at 0,0,0 keeps the old behaviour.
+    ' Keep-out zones stay in MODULE-local coordinates and are unaffected, so an
+    ' exclusion file survives the module being re-geolocated.
+    Public OriginXMm As Double = 0.0
+    Public OriginYMm As Double = 0.0
+    Public OriginZMm As Double = 0.0
 End Class
 
 Public Class StudArrayResult
@@ -243,6 +253,13 @@ Public Class StudArrayBuilder
             p.Umm = (datum - ang) * inp.RadiusMm
             p.Vmm = longMm
         End If
+
+        ' Shift into assembly coordinates last, so everything above stays in the
+        ' module frame. Umm/Vmm are deliberately NOT shifted: keep-out zones are
+        ' authored module-locally and must not move when the module does.
+        p.Xmm += inp.OriginXMm
+        p.Ymm += inp.OriginYMm
+        p.Zmm += inp.OriginZMm
         Return p
     End Function
 

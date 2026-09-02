@@ -18,6 +18,9 @@ STUD_DIAPH_PITCH_DEG,Number,"CURVED, ANNULAR",3.5,Angular diaphragm pitch
 STUD_R_INNER_MM,Number,ANNULAR,3000.0,Inner radius of the ring
 STUD_R_OUTER_MM,Number,ANNULAR,17000.0,Outer radius of the ring
 STUD_FACE_OFFSET_MM,Number,all,0.0,Faceplate inner face offset along the stud axis
+STUD_ORIGIN_X_MM,Number,all,0.0,"Module datum in ASSEMBLY coords. For ANNULAR this is the ring centre. Leave 0 if the assembly origin is already the building centreline"
+STUD_ORIGIN_Y_MM,Number,all,0.0,See STUD_ORIGIN_X_MM
+STUD_ORIGIN_Z_MM,Number,all,0.0,See STUD_ORIGIN_X_MM
 STUD_DIR_SIGN,Number,all,1,+1 or -1. Flips the stud direction along the face normal
 STUD_TERM_START,Text,all,LANDING_PLATE,LANDING_PLATE | COVER_PLATE | SPLICE | FREE_EDGE
 STUD_TERM_END,Text,all,SPLICE,Same options as STUD_TERM_START

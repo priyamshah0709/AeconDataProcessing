@@ -28,6 +28,13 @@ Imports Inventor
 
 Public Class StudPlacer
 
+    ''' <summary>
+    ''' Default occurrence-name prefix. Made overridable because a basemat has a
+    ''' faceplate on BOTH faces and each needs its own run: the place routine
+    ''' clears everything carrying the prefix first, so two faces sharing one
+    ''' prefix means the second run deletes the first face's studs.
+    ''' Give each face its own (STUD_BOT_, STUD_TOP_) and both survive.
+    ''' </summary>
     Public Const OccurrencePrefix As String = "STUD_"
 
     ''' <summary>Right-handed coordinate system with local +Z along (dx,dy,dz).</summary>
@@ -69,11 +76,13 @@ Public Class StudPlacer
     End Function
 
     ''' <summary>Remove studs placed by a previous run so the rule is re-runnable.</summary>
-    Public Shared Function ClearExisting(ByVal asmDef As AssemblyComponentDefinition) As Integer
+    Public Shared Function ClearExisting(ByVal asmDef As AssemblyComponentDefinition,
+                                        Optional ByVal prefix As String = OccurrencePrefix) As Integer
         Dim n As Integer = 0
+        If String.IsNullOrEmpty(prefix) Then prefix = OccurrencePrefix
         For i As Integer = asmDef.Occurrences.Count To 1 Step -1
             Dim occ As ComponentOccurrence = asmDef.Occurrences.Item(i)
-            If occ.Name.StartsWith(OccurrencePrefix, StringComparison.OrdinalIgnoreCase) Then
+            If occ.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) Then
                 occ.Delete()
                 n += 1
             End If
@@ -91,7 +100,8 @@ Public Class StudPlacer
                                  ByVal studPartPath As String,
                                  ByVal pts As List(Of StudPoint),
                                  ByVal maxOccurrences As Integer,
-                                 ByRef message As String) As Integer
+                                 ByRef message As String,
+                                 Optional ByVal prefix As String = OccurrencePrefix) As Integer
         If Not System.IO.File.Exists(studPartPath) Then
             Throw New Exception("Stud part not found: " & studPartPath)
         End If
@@ -114,12 +124,13 @@ Public Class StudPlacer
             inv.UserInterfaceManager.UserInteractionDisabled = True
             tx = inv.TransactionManager.StartTransaction(asmDoc, "Place shear studs")
 
-            ClearExisting(asmDef)
+            If String.IsNullOrEmpty(prefix) Then prefix = OccurrencePrefix
+            ClearExisting(asmDef, prefix)
 
             For Each p As StudPoint In pts
                 Dim m As Inventor.Matrix = BuildMatrix(tg, p.Xmm, p.Ymm, p.Zmm, p.DirX, p.DirY, p.DirZ)
                 Dim occ As ComponentOccurrence = asmDef.Occurrences.Add(studPartPath, m)
-                occ.Name = OccurrencePrefix & p.Channel.ToString("00") & "_" &
+                occ.Name = prefix & p.Channel.ToString("00") & "_" &
                            p.Line.ToString("0") & "_" & p.Station.ToString("000")
                 ' Grounded so nothing drifts: these are positioned by rule, not by constraints.
                 occ.Grounded = True

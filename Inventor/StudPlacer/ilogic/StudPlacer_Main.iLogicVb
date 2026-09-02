@@ -44,6 +44,9 @@ Sub Main()
     Dim exclPath As String = ParamText(asmDoc, "STUD_EXCLUSIONS_CSV", "")
     Dim placeGeom As Boolean = (ParamText(asmDoc, "STUD_PLACE_GEOMETRY", "TRUE").ToUpper() <> "FALSE")
     Dim maxOcc As Integer = CInt(ParamNum(asmDoc, "STUD_MAX_OCCURRENCES", 4000))
+    ' A basemat has a faceplate top and bottom; give each face its own prefix so
+    ' the second run does not clear the first face's studs.
+    Dim occPrefix As String = ParamText(asmDoc, "STUD_OCC_PREFIX", "STUD_")
 
     '--- preflight ----------------------------------------------------------------
     ' Check every file the run depends on up front, so a bad install path names
@@ -103,6 +106,10 @@ Sub Main()
     m.TransverseMode = ParamText(asmDoc, "STUD_TRANSVERSE_MODE", "EVEN").ToUpper()
     m.StudDirSign = ParamNum(asmDoc, "STUD_DIR_SIGN", 1.0)
     m.FaceOffsetMm = ParamMm(asmDoc, "STUD_FACE_OFFSET_MM", 0.0)
+    ' Ring centre / module datum in assembly coordinates -- for geolocated models.
+    m.OriginXMm = ParamMm(asmDoc, "STUD_ORIGIN_X_MM", 0.0)
+    m.OriginYMm = ParamMm(asmDoc, "STUD_ORIGIN_Y_MM", 0.0)
+    m.OriginZMm = ParamMm(asmDoc, "STUD_ORIGIN_Z_MM", 0.0)
     m.DensityMakeup = (ParamText(asmDoc, "STUD_DENSITY_MAKEUP", "TRUE").ToUpper() <> "FALSE")
 
     If m.Component = "" Then
@@ -141,7 +148,7 @@ Sub Main()
     Dim placedCount As Integer = 0
     If placeGeom AndAlso result.Points.Count > 0 Then
         Try
-            placedCount = StudPlacer.Place(inv, asmDoc, studPart, result.Points, maxOcc, placeMsg)
+            placedCount = StudPlacer.Place(inv, asmDoc, studPart, result.Points, maxOcc, placeMsg, occPrefix)
         Catch ex As Exception
             placeMsg = "Placement failed: " & ex.Message
         End Try

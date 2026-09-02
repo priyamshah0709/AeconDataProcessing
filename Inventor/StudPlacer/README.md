@@ -192,13 +192,20 @@ than Inventor.** Each fix tightened the harness rather than just the code.
 
 ## Known caveats — read before trusting output
 
-1. **It has not been run inside Inventor.** The engine is compiled and tested (see
-   *Verification* above) and the rule files are compile‑checked against faithful API
-   stubs, but no one has yet clicked *Run Rule* on a real module. The stubs model the
-   API surface the rules touch, not Inventor's runtime behaviour. **Run
-   `StudPlacer_SelfTest` first**, then a real module with
-   `STUD_PLACE_GEOMETRY = False`, and read the violations block before placing
-   geometry.
+1. **The engine is proven in Inventor; the placement path is not.**
+   `StudPlacer_SelfTest` passes 44/44 inside Inventor, which establishes that
+   `AddVbFile` resolves, the rules compile under iLogic, the code tables load,
+   and the engine reproduces every value printed on G103 Tables 1‑6 and 1‑7 —
+   including the derived `S_t = W_sc/(n+1)` identity and the radial band
+   degradation.
+
+   It does **not** exercise `StudPlacer_Main`, which is where the remaining risk
+   sits: reading `STUD_*` parameters off a real assembly, occurrence placement
+   (matrix orientation, the mm→cm conversion, grounding), performance at a few
+   thousand occurrences, and CSV export. Those are covered by the offline suite
+   against stubs, but stubs model the API surface, not Inventor's runtime.
+   **Run a real module with `STUD_PLACE_GEOMETRY = False` first** and read the
+   violations block before letting it place geometry.
 
 2. **Splice A / Splice B are an interpretation.** Detail 3 says a maximum 86.9 mm
    (Splice A, basemat OSW) and 76.2 mm (Splice B, pedestal wall) "is acceptable". Read

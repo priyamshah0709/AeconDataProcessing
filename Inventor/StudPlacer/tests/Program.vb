@@ -402,6 +402,43 @@ Module StudPlacerTests
         Dim rb As StudArrayResult = New StudArrayBuilder(t, mb).Build(New List(Of ExclusionZone))
         Ok("over-wide outer cavity is flagged", ViolationCodes(rb).IndexOf("WSC_EXCEEDS_TABLE_MAX") >= 0)
 
+
+        '--------------------------------------------------------------------
+        Grp("Geolocated module (origin offset)")
+        Dim mg As New ModuleInput()
+        mg.Component = "OUTER_BASEMAT" : mg.Geometry = "ANNULAR"
+        mg.RInnerMm = 6000.0 : mg.ROuterMm = 14000.0
+        mg.DiaphPitchDeg = 2.0 : mg.SpanDeg = 2.0 : mg.DatumDeg = 0.0
+        mg.TermStart = "SPLICE" : mg.TermEnd = "SPLICE" : mg.DensityMakeup = False
+        Dim rNoOff As StudArrayResult = New StudArrayBuilder(t, mg).Build(New List(Of ExclusionZone))
+
+        mg.OriginXMm = 250000.0 : mg.OriginYMm = -180000.0 : mg.OriginZMm = -34000.0
+        Dim rOff As StudArrayResult = New StudArrayBuilder(t, mg).Build(New List(Of ExclusionZone))
+
+        Eq("offset does not change stud count", rOff.Points.Count, rNoOff.Points.Count)
+        Ok("offset produces no new violations", rOff.Violations.Count = 0)
+        Dim shifted As Boolean = True
+        Dim localKept As Boolean = True
+        For i As Integer = 0 To rNoOff.Points.Count - 1
+            Dim a As StudPoint = rNoOff.Points(i)
+            Dim b As StudPoint = rOff.Points(i)
+            If Math.Abs((b.Xmm - a.Xmm) - 250000.0) > 0.001 Then shifted = False
+            If Math.Abs((b.Ymm - a.Ymm) - (-180000.0)) > 0.001 Then shifted = False
+            If Math.Abs((b.Zmm - a.Zmm) - (-34000.0)) > 0.001 Then shifted = False
+            ' Keep-outs are authored module-locally, so u/v must NOT move.
+            If Math.Abs(b.Umm - a.Umm) > 0.001 OrElse Math.Abs(b.Vmm - a.Vmm) > 0.001 Then localKept = False
+        Next
+        Ok("every stud shifts by exactly the offset", shifted)
+        Ok("keep-out coordinates stay module-local", localKept)
+        ' Radii must still be measured from the ring centre, not the assembly origin.
+        Dim rMin As Double = Double.MaxValue
+        For Each pt As StudPoint In rOff.Points
+            Dim dx As Double = pt.Xmm - 250000.0
+            Dim dy As Double = pt.Ymm - (-180000.0)
+            rMin = Math.Min(rMin, Math.Sqrt(dx * dx + dy * dy))
+        Next
+        Ok("radii still measured from the ring centre", rMin >= 6000.0 - 0.01)
+
         '--------------------------------------------------------------------
         Grp("Exclusion zones")
         Dim zones As New List(Of ExclusionZone)
@@ -518,6 +555,27 @@ Module StudPlacerTests
             threw = True
         End Try
         Ok("missing stud part raises", threw)
+
+
+        ' A basemat needs studs on both faceplates. Two runs with distinct
+        ' prefixes must coexist; sharing one prefix wipes the first face.
+        Dim asmBoth As New Inventor.AssemblyDocument()
+        StudPlacer.Place(inv, asmBoth, studPath, r.Points, 100000, msg, "STUD_BOT_")
+        StudPlacer.Place(inv, asmBoth, studPath, rf0.Points, 100000, msg, "STUD_TOP_")
+        Eq("both faces coexist under distinct prefixes",
+           asmBoth.ComponentDefinition.Occurrences.Count, r.Points.Count + rf0.Points.Count)
+        Dim bot As Integer = 0, top As Integer = 0
+        For i As Integer = 1 To asmBoth.ComponentDefinition.Occurrences.Count
+            Dim nm As String = asmBoth.ComponentDefinition.Occurrences.Item(i).Name
+            If nm.StartsWith("STUD_BOT_") Then bot += 1
+            If nm.StartsWith("STUD_TOP_") Then top += 1
+        Next
+        Eq("bottom face intact", bot, r.Points.Count)
+        Eq("top face intact", top, rf0.Points.Count)
+        ' Re-running one face must replace only that face.
+        StudPlacer.Place(inv, asmBoth, studPath, r.Points, 100000, msg, "STUD_BOT_")
+        Eq("re-running one face leaves the other alone",
+           asmBoth.ComponentDefinition.Occurrences.Count, r.Points.Count + rf0.Points.Count)
 
         ' Curved studs must produce valid frames too.
         Dim asm2 As New Inventor.AssemblyDocument()
